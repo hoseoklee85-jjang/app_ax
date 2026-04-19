@@ -1,121 +1,136 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description: string;
+  stock: number;
+  createdAt: string;
 }
 
-export default App
+function App() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ name: '', price: '', description: '', stock: '' });
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      setProducts(data);
+    } catch (err) {
+      console.error('Failed to fetch products', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.price) return alert('Name and price are required.');
+    
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          price: parseInt(form.price),
+          description: form.description,
+          stock: parseInt(form.stock) || 0
+        })
+      });
+      if (res.ok) {
+        setForm({ name: '', price: '', description: '', stock: '' });
+        fetchProducts(); // Refresh list
+      }
+    } catch (err) {
+      console.error('Failed to create product', err);
+    }
+  };
+
+  return (
+    <div className="admin-container">
+      <header className="admin-header">
+        <h1>🛍️ E-Commerce Admin</h1>
+      </header>
+
+      <main className="admin-main">
+        <section className="admin-panel add-product-panel">
+          <h2>Add New Product</h2>
+          <form onSubmit={handleSubmit} className="product-form">
+            <div className="form-group">
+              <label>Product Name</label>
+              <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. Wireless Mouse" />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Price ($)</label>
+                <input type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} placeholder="29" />
+              </div>
+              <div className="form-group">
+                <label>Stock</label>
+                <input type="number" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} placeholder="100" />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Description</label>
+              <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Product description..."></textarea>
+            </div>
+            <button type="submit" className="btn-primary">Save Product</button>
+          </form>
+        </section>
+
+        <section className="admin-panel product-list-panel">
+          <h2>Product Inventory</h2>
+          {loading ? (
+            <p>Loading products from database...</p>
+          ) : (
+            <div className="table-wrapper">
+              <table className="product-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Date Added</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center">No products found. Add one!</td>
+                    </tr>
+                  ) : (
+                    products.map(p => (
+                      <tr key={p.id}>
+                        <td>#{p.id}</td>
+                        <td className="fw-bold">{p.name}</td>
+                        <td>${p.price.toLocaleString()}</td>
+                        <td>
+                          <span className={p.stock > 10 ? 'badge-success' : 'badge-warning'}>
+                            {p.stock}
+                          </span>
+                        </td>
+                        <td>{new Date(p.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+export default App;
