@@ -54,11 +54,12 @@
 ## 🚀 로컬 개발 환경 실행 방법
 
 프로젝트를 로컬에서 구동하기 위해서는 프론트엔드와 백엔드 서버를 각각 실행해야 합니다.
+*(주의: `npm install` 명령어는 프로젝트를 처음 다운로드 받았을 때나 새로운 라이브러리가 추가되었을 때 **최초 1회만** 실행하시면 됩니다.)*
 
 ### 1단계: 백엔드 서버 실행
 ```bash
 cd server
-npm install
+npm install   # 최초 1회만
 npm run dev
 ```
 *(성공 시 `Server is running on http://localhost:3000` 출력)*
@@ -66,7 +67,7 @@ npm run dev
 ### 2단계: 프론트엔드 서버 실행 (새 터미널 창)
 ```bash
 # 프로젝트 루트 폴더(최상단)에서 실행
-npm install
+npm install   # 최초 1회만
 npm run dev
 ```
 *(성공 시 브라우저에서 `http://localhost:5173` 접속)*
