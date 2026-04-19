@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const agentRoutes = require('./routes/agentRoutes');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/agent', agentRoutes);
 
 // === Initial Seeder ===
 async function seedAdmin() {

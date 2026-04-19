@@ -1,4 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+interface OrderItem {
+  id: number;
+  productName: string;
+  price: number;
+  quantity: number;
+}
 
 interface Order {
   id: number;
@@ -12,9 +20,11 @@ interface Order {
   status: string;
   notes: string | null;
   createdAt: string;
+  items?: OrderItem[];
 }
 
 export default function OrderManage() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'COMPLETED' | 'CANCELLED' | 'RETURNED'>('COMPLETED');
@@ -123,7 +133,7 @@ export default function OrderManage() {
                   </tr>
                 ) : (
                   orders.map(o => (
-                    <tr key={o.id}>
+                    <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} style={{ cursor: 'pointer' }}>
                       <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{o.orderNumber}</td>
                       <td>
                         <div className="fw-bold">{o.customer}</div>
@@ -161,18 +171,18 @@ export default function OrderManage() {
                         {o.status === 'COMPLETED' && (
                           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <button 
-                              onClick={() => handleStatusChange(o.id, 'CANCELLED')}
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'CANCELLED'); }}
                               style={{ background: '#ef4444', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
                             >Cancel</button>
                             <button 
-                              onClick={() => handleStatusChange(o.id, 'RETURNED')}
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'RETURNED'); }}
                               style={{ background: 'var(--warning)', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
                             >Return</button>
                           </div>
                         )}
                         {o.status !== 'COMPLETED' && (
                           <button 
-                            onClick={() => handleStatusChange(o.id, 'COMPLETED')}
+                            onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'COMPLETED'); }}
                             style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
                           >Restore</button>
                         )}

@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import AgentChat from '../components/AgentChat';
 import '../App.css'; // Global styles
 
 export default function AdminLayout() {
@@ -91,6 +92,9 @@ export default function AdminLayout() {
       <main className="admin-main">
         <Outlet />
       </main>
+      
+      {/* 🚀 AI Agent Chat Widget 🚀 */}
+      <AgentChat />
     </div>
   );
 }

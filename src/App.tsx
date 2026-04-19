@@ -6,6 +6,7 @@ import Login from './pages/Login';
 
 import AdminManage from './pages/AdminManage';
 import OrderManage from './pages/OrderManage';
+import OrderDetail from './pages/OrderDetail';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="products" element={<ProductManage />} />
           <Route path="admins" element={<AdminManage />} />
           <Route path="orders" element={<OrderManage />} />
+          <Route path="orders/:id" element={<OrderDetail />} />
         </Route>
         
         {/* 매칭되지 않는 주소는 모두 메인(또는 로그인)으로 강제 리다이렉트 */}
