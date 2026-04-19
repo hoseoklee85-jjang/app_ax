@@ -27,94 +27,96 @@ export default function Dashboard() {
   if (!data) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: 'calc(100vh - 120px)', minHeight: '600px', gridColumn: '1 / -1' }}>
       {/* 1. Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-        <div className="admin-panel stat-card" style={{ padding: '2rem' }}>
-          <h3 style={{ color: 'var(--text-muted)', margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Total Revenue</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--accent)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+        <div className="admin-panel stat-card" style={{ padding: '1.2rem' }}>
+          <h3 style={{ color: 'var(--text-muted)', margin: '0 0 0.3rem 0', fontSize: '0.9rem' }}>Total Revenue</h3>
+          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--accent)' }}>
             ${data.summary.totalRevenue.toLocaleString()}
           </div>
         </div>
-        <div className="admin-panel stat-card" style={{ padding: '2rem' }}>
-          <h3 style={{ color: 'var(--text-muted)', margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Total Orders</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--success)' }}>
+        <div className="admin-panel stat-card" style={{ padding: '1.2rem' }}>
+          <h3 style={{ color: 'var(--text-muted)', margin: '0 0 0.3rem 0', fontSize: '0.9rem' }}>Total Orders</h3>
+          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--success)' }}>
             {data.summary.totalOrders}
           </div>
         </div>
-        <div className="admin-panel stat-card" style={{ padding: '2rem' }}>
-          <h3 style={{ color: 'var(--text-muted)', margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Total Products</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--warning)' }}>
+        <div className="admin-panel stat-card" style={{ padding: '1.2rem' }}>
+          <h3 style={{ color: 'var(--text-muted)', margin: '0 0 0.3rem 0', fontSize: '0.9rem' }}>Total Products</h3>
+          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--warning)' }}>
             {data.summary.totalProducts}
           </div>
         </div>
-        <div className="admin-panel stat-card" style={{ padding: '2rem' }}>
-          <h3 style={{ color: 'var(--text-muted)', margin: '0 0 0.5rem 0', fontSize: '1rem' }}>Active Admins</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#c084fc' }}>
+        <div className="admin-panel stat-card" style={{ padding: '1.2rem' }}>
+          <h3 style={{ color: 'var(--text-muted)', margin: '0 0 0.3rem 0', fontSize: '0.9rem' }}>Active Admins</h3>
+          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#c084fc' }}>
             {data.summary.totalAdmins}
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem', flex: 1, minHeight: 0 }}>
         {/* 2. Chart */}
-        <div className="admin-panel" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ marginBottom: '1.5rem' }}>Sales Overview (Last 6 Months)</h2>
+        <div className="admin-panel" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', marginBottom: 0 }}>
+          <h2 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Sales Overview (Last 6 Months)</h2>
           <div style={{ flex: 1, minHeight: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                <XAxis dataKey="name" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
+                <YAxis stroke="#94a3b8" fontSize={12} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '8px' }}
                   itemStyle={{ color: '#60a5fa' }}
                 />
-                <Line type="monotone" dataKey="sales" stroke="#3b82f6" strokeWidth={4} dot={{ r: 6, fill: '#1e293b', strokeWidth: 3 }} activeDot={{ r: 8 }} />
+                <Line type="monotone" dataKey="sales" stroke="#3b82f6" strokeWidth={4} dot={{ r: 5, fill: '#1e293b', strokeWidth: 2 }} activeDot={{ r: 7 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* 3. Recent Orders */}
-        <div className="admin-panel" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ marginBottom: '1.5rem' }}>Recent Orders</h2>
-          <div className="table-wrapper" style={{ flex: 1 }}>
-            <table className="product-table" style={{ width: '100%' }}>
+        <div className="admin-panel" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', marginBottom: 0, overflow: 'hidden' }}>
+          <h2 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Recent Orders</h2>
+          <div className="table-wrapper" style={{ flex: 1, overflowY: 'auto' }}>
+            <table className="product-table" style={{ width: '100%', margin: 0 }}>
               <thead>
                 <tr>
-                  <th>Order No.</th>
-                  <th>Customer</th>
-                  <th>Status</th>
-                  <th>Total</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Order No.</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Customer</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Total</th>
                 </tr>
               </thead>
               <tbody>
                 {data.recentOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center">No recent orders.</td>
+                    <td colSpan={4} className="text-center" style={{ padding: '2rem' }}>No recent orders.</td>
                   </tr>
                 ) : (
                   data.recentOrders.map((o: any) => (
                     <tr key={o.id}>
-                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{o.orderNumber}</td>
-                      <td className="fw-bold">{o.customer}</td>
-                      <td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0.75rem 0.5rem' }}>{o.orderNumber.slice(-8)}</td>
+                      <td className="fw-bold" style={{ fontSize: '0.9rem', padding: '0.75rem 0.5rem' }}>{o.customer}</td>
+                      <td style={{ padding: '0.75rem 0.5rem' }}>
                         <span 
                           className={
                             o.status === 'COMPLETED' ? 'badge-success' : 
-                            o.status === 'CANCELLED' ? 'badge-warning' : 'badge-warning'
+                            'badge-warning'
                           }
                           style={{
                             background: o.status === 'CANCELLED' ? 'rgba(239, 68, 68, 0.1)' : undefined,
                             color: o.status === 'CANCELLED' ? '#ef4444' : undefined,
-                            borderRadius: '4px'
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            padding: '0.2rem 0.5rem'
                           }}
                         >
-                          {o.status}
+                          {o.status.substring(0, 4)}
                         </span>
                       </td>
-                      <td className="fw-bold text-accent">${o.total.toLocaleString()}</td>
+                      <td className="fw-bold text-accent" style={{ fontSize: '0.9rem', padding: '0.75rem 0.5rem' }}>${o.total.toLocaleString()}</td>
                     </tr>
                   ))
                 )}
