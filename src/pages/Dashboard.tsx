@@ -8,7 +8,8 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await fetch('/api/dashboard');
+        const storeId = localStorage.getItem('storeId') || 'ALL';
+        const res = await fetch(`/api/dashboard?storeId=${storeId}`);
         const json = await res.json();
         setData(json);
       } catch (err) {
@@ -84,6 +85,7 @@ export default function Dashboard() {
               <thead>
                 <tr>
                   <th style={{ padding: '0.75rem 0.5rem' }}>Order No.</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Region</th>
                   <th style={{ padding: '0.75rem 0.5rem' }}>Customer</th>
                   <th style={{ padding: '0.75rem 0.5rem' }}>Status</th>
                   <th style={{ padding: '0.75rem 0.5rem' }}>Total</th>
@@ -98,6 +100,9 @@ export default function Dashboard() {
                   data.recentOrders.map((o: any) => (
                     <tr key={o.id}>
                       <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0.75rem 0.5rem' }}>{o.orderNumber.slice(-8)}</td>
+                      <td style={{ fontWeight: 'bold', fontSize: '0.85rem', color: o.storeId === 'US' ? '#3b82f6' : '#10b981', padding: '0.75rem 0.5rem' }}>
+                        {o.storeId === 'US' ? '🇺🇸 US' : '🇰🇷 KR'}
+                      </td>
                       <td className="fw-bold" style={{ fontSize: '0.9rem', padding: '0.75rem 0.5rem' }}>{o.customer}</td>
                       <td style={{ padding: '0.75rem 0.5rem' }}>
                         <span 

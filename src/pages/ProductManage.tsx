@@ -12,11 +12,20 @@ interface Product {
 export default function ProductManage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: '', price: '', description: '', stock: '' });
+  const [langTab, setLangTab] = useState('en');
+  const [form, setForm] = useState({ 
+    price: '', 
+    stock: '',
+    translations: {
+      en: { name: '', description: '' },
+      ko: { name: '', description: '' }
+    }
+  });
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('/api/products');
+      const storeId = localStorage.getItem('storeId') || 'ALL';
+      const res = await fetch(`/api/products?storeId=${storeId}`);
       const data = await res.json();
       setProducts(data);
     } catch (err) {
@@ -32,21 +41,30 @@ export default function ProductManage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.price) return alert('Name and price are required.');
+    if (!form.translations.en.name || !form.price) return alert('English name and price are required.');
     
     try {
+      const storeId = localStorage.getItem('storeId') || 'US';
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: form.name,
+          name: form.translations.en.name,
           price: parseInt(form.price),
-          description: form.description,
-          stock: parseInt(form.stock) || 0
+          description: form.translations.en.description,
+          stock: parseInt(form.stock) || 0,
+          storeId: storeId === 'ALL' ? 'US' : storeId,
+          translations: [
+            { language: 'en', name: form.translations.en.name, description: form.translations.en.description },
+            { language: 'ko', name: form.translations.ko.name, description: form.translations.ko.description }
+          ]
         })
       });
       if (res.ok) {
-        setForm({ name: '', price: '', description: '', stock: '' });
+        setForm({ 
+          price: '', stock: '', 
+          translations: { en: { name: '', description: '' }, ko: { name: '', description: '' } } 
+        });
         fetchProducts(); // Refresh list
       }
     } catch (err) {
@@ -57,11 +75,17 @@ export default function ProductManage() {
   return (
     <>
       <section className="admin-panel add-product-panel">
-        <h2>Add New Product</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: 0 }}>Add New Product</h2>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button type="button" onClick={() => setLangTab('en')} style={{ padding: '0.4rem 1rem', borderRadius: '4px', border: '1px solid var(--border)', background: langTab === 'en' ? 'var(--accent)' : 'var(--bg-panel)', color: langTab === 'en' ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 'bold' }}>English</button>
+            <button type="button" onClick={() => setLangTab('ko')} style={{ padding: '0.4rem 1rem', borderRadius: '4px', border: '1px solid var(--border)', background: langTab === 'ko' ? 'var(--accent)' : 'var(--bg-panel)', color: langTab === 'ko' ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 'bold' }}>Korean</button>
+          </div>
+        </div>
         <form onSubmit={handleSubmit} className="product-form">
           <div className="form-group">
-            <label>Product Name</label>
-            <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. Wireless Mouse" />
+            <label>Product Name ({langTab.toUpperCase()})</label>
+            <input type="text" value={form.translations[langTab as 'en'|'ko'].name} onChange={e => setForm({...form, translations: {...form.translations, [langTab]: {...form.translations[langTab as 'en'|'ko'], name: e.target.value}}})} placeholder="e.g. Wireless Mouse" />
           </div>
           <div className="form-row">
             <div className="form-group">
@@ -74,8 +98,8 @@ export default function ProductManage() {
             </div>
           </div>
           <div className="form-group">
-            <label>Description</label>
-            <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Product description..."></textarea>
+            <label>Description ({langTab.toUpperCase()})</label>
+            <textarea value={form.translations[langTab as 'en'|'ko'].description} onChange={e => setForm({...form, translations: {...form.translations, [langTab]: {...form.translations[langTab as 'en'|'ko'], description: e.target.value}}})} placeholder="Product description..."></textarea>
           </div>
           <button type="submit" className="btn-primary">Save Product</button>
         </form>

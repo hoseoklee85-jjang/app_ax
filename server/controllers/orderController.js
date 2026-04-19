@@ -3,9 +3,10 @@ const prisma = new PrismaClient();
 
 exports.getOrders = async (req, res) => {
   try {
-    const { status, search, startDate, endDate, page = 1, limit = 10 } = req.query;
+    const { status, search, startDate, endDate, page = 1, limit = 10, storeId } = req.query;
     
     const filter = {};
+    if (storeId && storeId !== 'ALL') filter.storeId = storeId;
     if (status) filter.status = status;
     if (search) {
       filter.OR = [
@@ -70,7 +71,7 @@ exports.getOrderById = async (req, res) => {
 
 exports.createOrder = async (req, res) => {
   try {
-    const { customer, customerEmail, customerPhone, shippingAddress, paymentMethod, notes, items } = req.body;
+    const { customer, customerEmail, customerPhone, shippingAddress, paymentMethod, notes, items, storeId = 'KR' } = req.body;
     
     if (!items || items.length === 0) {
       return res.status(400).json({ error: '장바구니가 비어 있습니다.' });
@@ -114,6 +115,7 @@ exports.createOrder = async (req, res) => {
 
       return await tx.order.create({
         data: {
+          storeId,
           orderNumber,
           customer,
           customerEmail,

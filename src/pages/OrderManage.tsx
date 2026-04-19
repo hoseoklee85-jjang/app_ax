@@ -39,16 +39,16 @@ export default function OrderManage() {
   const [dateFilterStr, setDateFilterStr] = useState({ start: '', end: '' });
 
   const fetchOrders = async (status: string, searchStr: string = searchQuery, p: number = page, dates = dateFilterStr) => {
-    setLoading(true);
     try {
-      const query = new URLSearchParams();
-      if (status && status !== 'ALL') query.append('status', status);
-      if (searchStr) query.append('search', searchStr);
-      if (dates.start) query.append('startDate', dates.start);
-      if (dates.end) query.append('endDate', dates.end);
-      query.append('page', p.toString());
+      setLoading(true);
+      const storeId = localStorage.getItem('storeId') || 'ALL';
+      let url = `/api/orders?page=${p}&limit=10&storeId=${storeId}`;
+      if (status !== 'ALL') url += `&status=${status}`;
+      if (searchStr) url += `&search=${encodeURIComponent(searchStr)}`;
+      if (dates.start) url += `&startDate=${dates.start}`;
+      if (dates.end) url += `&endDate=${dates.end}`;
       
-      const res = await fetch(`/api/orders?${query.toString()}`);
+      const res = await fetch(url);
       const result = await res.json();
       if (result.pagination) {
         setOrders(result.data);
@@ -244,6 +244,7 @@ export default function OrderManage() {
                 <tr>
                   <th style={{ width: '40px', textAlign: 'center' }}><input type="checkbox" /></th>
                   <th>Order #</th>
+                  <th>Region</th>
                   <th>Purchase Date</th>
                   <th>Customer Name</th>
                   <th>Grand Total</th>

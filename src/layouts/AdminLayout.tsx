@@ -21,9 +21,29 @@ export default function AdminLayout() {
     <div className="admin-container">
       <header className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link to="/" style={{ textDecoration: 'none' }}>
-          <h1>🛍️ E-Commerce Admin</h1>
+          <h1>🌐 LG Global Admin</h1>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+          <select 
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              background: 'var(--bg-panel)',
+              color: 'var(--text-main)',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+            defaultValue={localStorage.getItem('storeId') || 'ALL'}
+            onChange={(e) => {
+              localStorage.setItem('storeId', e.target.value);
+              window.location.reload();
+            }}
+          >
+            <option value="ALL">🌎 All Regions</option>
+            <option value="KR">🇰🇷 South Korea (KRW)</option>
+            <option value="US">🇺🇸 United States (USD)</option>
+          </select>
           <nav style={{ display: 'flex', gap: '1.5rem' }}>
             <Link 
               to="/" 

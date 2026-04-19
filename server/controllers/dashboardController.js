@@ -3,26 +3,32 @@ const prisma = new PrismaClient();
 
 exports.getDashboardData = async (req, res) => {
   try {
+    const { storeId } = req.query;
+    const filter = {};
+    if (storeId && storeId !== 'ALL') filter.storeId = storeId;
+    const orderFilter = { ...filter, status: 'COMPLETED' };
+
     // 1. Total Completed Orders
     const totalOrdersCount = await prisma.order.count({
-      where: { status: 'COMPLETED' }
+      where: orderFilter
     });
 
     // 2. Total Revenue (Sum of total of completed orders)
     const completedOrders = await prisma.order.findMany({
-      where: { status: 'COMPLETED' },
+      where: orderFilter,
       select: { total: true }
     });
     const totalRevenue = completedOrders.reduce((acc, order) => acc + order.total, 0);
 
     // 3. Total Products
-    const totalProductsCount = await prisma.product.count();
+    const totalProductsCount = await prisma.product.count({ where: filter });
 
     // 4. Total Admins
     const totalAdminsCount = await prisma.adminUser.count();
 
     // 5. Recent 5 Orders (any status)
     const recentOrders = await prisma.order.findMany({
+      where: filter,
       take: 5,
       orderBy: { createdAt: 'desc' }
     });
@@ -39,6 +45,7 @@ exports.getDashboardData = async (req, res) => {
 
     // 7. Low Stock Products
     const lowStockProducts = await prisma.product.findMany({
+      where: filter,
       take: 5,
       orderBy: { stock: 'asc' }
     });
