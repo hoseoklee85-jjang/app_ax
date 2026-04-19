@@ -59,6 +59,15 @@ body {
   border: 1px solid var(--border);
 }
 
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
 .admin-panel h2 {
   margin-top: 0;
   font-size: 1.25rem;
