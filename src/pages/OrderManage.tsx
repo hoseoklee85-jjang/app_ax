@@ -27,14 +27,15 @@ export default function OrderManage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'PAID' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED' | 'RETURNED'>('PAID');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'PAID' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED' | 'RETURNED'>('ALL');
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchOrders = async (status: string, searchStr: string = searchQuery) => {
     setLoading(true);
     try {
-      const query = new URLSearchParams({ status });
+      const query = new URLSearchParams();
+      if (status && status !== 'ALL') query.append('status', status);
       if (searchStr) query.append('search', searchStr);
       const res = await fetch(`/api/orders?${query.toString()}`);
       const data = await res.json();
@@ -118,8 +119,9 @@ export default function OrderManage() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
           {[
+            { label: '전체 보기', value: 'ALL' },
             { label: '💰 PAID (결제완료)', value: 'PAID' },
             { label: '🚚 SHIPPING (배송중)', value: 'SHIPPING' },
             { label: '📦 DELIVERED (배송완료)', value: 'DELIVERED' },
