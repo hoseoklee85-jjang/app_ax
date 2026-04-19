@@ -34,10 +34,90 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
+exports.createOrder = async (req, res) => {
+  try {
+    const { customer, customerEmail, customerPhone, shippingAddress, paymentMethod, notes, items } = req.body;
+    
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: '장바구니가 비어 있습니다.' });
+    }
+
+    const productIds = items.map(i => i.productId);
+    const dbProducts = await prisma.product.findMany({
+      where: { id: { in: productIds } }
+    });
+
+    let total = 0;
+    const orderItemsToCreate = [];
+
+    for (const item of items) {
+      const product = dbProducts.find(p => p.id === item.productId);
+      if (!product) return res.status(400).json({ error: `상품을 찾을 수 없습니다: ID ${item.productId}` });
+      if (product.stock < item.quantity) {
+        return res.status(400).json({ error: `재고 부족: ${product.name} (남은 수량: ${product.stock})` });
+      }
+      
+      total += product.price * item.quantity;
+      orderItemsToCreate.push({
+        productId: product.id,
+        productName: product.name,
+        price: product.price,
+        quantity: item.quantity
+      });
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const orderNumber = `ORD-${dateStr}-${randomChars}`;
+
+    const newOrder = await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } }
+        });
+      }
+
+      return await tx.order.create({
+        data: {
+          orderNumber,
+          customer,
+          customerEmail,
+          customerPhone,
+          shippingAddress,
+          paymentMethod: paymentMethod || 'CREDIT_CARD',
+          total,
+          status: 'PAID', // 결제 완료 상태로 생성
+          notes,
+          items: {
+            create: orderItemsToCreate
+          }
+        },
+        include: { items: true }
+      });
+    });
+
+    res.status(201).json(newOrder);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+};
+
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    
+    const order = await prisma.order.findUnique({ where: { id: parseInt(id) } });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    
+    if (status === 'CANCELLED' && order.status !== 'PAID') {
+      return res.status(400).json({ error: '취소는 결제완료(PAID) 상태에서만 가능합니다.' });
+    }
+    if (status === 'RETURNED' && order.status !== 'DELIVERED') {
+      return res.status(400).json({ error: '반품은 배송완료(DELIVERED) 상태에서만 가능합니다.' });
+    }
     
     const updatedOrder = await prisma.order.update({
       where: { id: parseInt(id) },
@@ -119,7 +199,7 @@ exports.seedDummyOrders = async (req, res) => {
           shippingAddress: addresses[Math.floor(Math.random() * addresses.length)],
           paymentMethod: methods[Math.floor(Math.random() * methods.length)],
           total,
-          status: 'COMPLETED',
+          status: 'PAID',
           items: {
             create: items
           }

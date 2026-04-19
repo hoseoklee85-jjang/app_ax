@@ -27,7 +27,7 @@ export default function OrderManage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'COMPLETED' | 'CANCELLED' | 'RETURNED'>('COMPLETED');
+  const [activeTab, setActiveTab] = useState<'PAID' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED' | 'RETURNED'>('PAID');
 
   const fetchOrders = async (status: string) => {
     setLoading(true);
@@ -57,9 +57,13 @@ export default function OrderManage() {
       });
       if (res.ok) {
         fetchOrders(activeTab);
+      } else {
+        const data = await res.json();
+        alert(data.error || '상태 변경 실패');
       }
     } catch (err) {
       console.error('Failed to update status', err);
+      alert('서버 오류가 발생했습니다.');
     }
   };
 
@@ -87,9 +91,11 @@ export default function OrderManage() {
 
         <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)' }}>
           {[
-            { label: '📦 Normal (Completed)', value: 'COMPLETED' },
-            { label: '🚫 Cancelled', value: 'CANCELLED' },
-            { label: '↩️ Returned', value: 'RETURNED' }
+            { label: '💰 PAID (결제완료)', value: 'PAID' },
+            { label: '🚚 SHIPPING (배송중)', value: 'SHIPPING' },
+            { label: '📦 DELIVERED (배송완료)', value: 'DELIVERED' },
+            { label: '🚫 CANCELLED (취소)', value: 'CANCELLED' },
+            { label: '↩️ RETURNED (반품)', value: 'RETURNED' }
           ].map(tab => (
             <button
               key={tab.value}
@@ -155,12 +161,14 @@ export default function OrderManage() {
                       <td>
                         <span 
                           className={
-                            o.status === 'COMPLETED' ? 'badge-success' : 
-                            o.status === 'CANCELLED' ? 'badge-warning' : 'badge-warning'
+                            o.status === 'PAID' ? 'badge-primary' : 
+                            o.status === 'SHIPPING' ? 'badge-primary' : 
+                            o.status === 'DELIVERED' ? 'badge-success' : 
+                            'badge-warning'
                           }
                           style={{
-                            background: o.status === 'CANCELLED' ? 'rgba(239, 68, 68, 0.1)' : undefined,
-                            color: o.status === 'CANCELLED' ? '#ef4444' : undefined,
+                            background: o.status === 'CANCELLED' || o.status === 'RETURNED' ? 'rgba(239, 68, 68, 0.1)' : undefined,
+                            color: o.status === 'CANCELLED' || o.status === 'RETURNED' ? '#ef4444' : undefined,
                             borderRadius: '4px'
                           }}
                         >
@@ -168,23 +176,29 @@ export default function OrderManage() {
                         </span>
                       </td>
                       <td>
-                        {o.status === 'COMPLETED' && (
+                        {o.status === 'PAID' && (
                           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'SHIPPING'); }}
+                              style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                            >Ship (배송)</button>
                             <button 
                               onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'CANCELLED'); }}
                               style={{ background: '#ef4444', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
                             >Cancel</button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'RETURNED'); }}
-                              style={{ background: 'var(--warning)', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                            >Return</button>
                           </div>
                         )}
-                        {o.status !== 'COMPLETED' && (
+                        {o.status === 'SHIPPING' && (
                           <button 
-                            onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'COMPLETED'); }}
+                            onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'DELIVERED'); }}
                             style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                          >Restore</button>
+                          >Deliver (완료)</button>
+                        )}
+                        {o.status === 'DELIVERED' && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'RETURNED'); }}
+                            style={{ background: 'var(--warning)', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                          >Return (반품)</button>
                         )}
                       </td>
                     </tr>

@@ -107,7 +107,14 @@ export default function OrderDetail() {
           <div>
             <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Status</p>
             <p style={{ margin: 0 }}>
-              <span className={order.status === 'COMPLETED' ? 'badge-success' : 'badge-warning'} style={{ borderRadius: '4px', padding: '0.2rem 0.5rem' }}>
+              <span className={
+                order.status === 'PAID' || order.status === 'SHIPPING' ? 'badge-primary' : 
+                order.status === 'DELIVERED' ? 'badge-success' : 'badge-warning'
+              } style={{ 
+                borderRadius: '4px', padding: '0.2rem 0.5rem',
+                background: order.status === 'CANCELLED' || order.status === 'RETURNED' ? 'rgba(239, 68, 68, 0.1)' : undefined,
+                color: order.status === 'CANCELLED' || order.status === 'RETURNED' ? '#ef4444' : undefined
+              }}>
                 {order.status}
               </span>
             </p>

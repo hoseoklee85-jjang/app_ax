@@ -10,6 +10,9 @@ const orderRoutes = require('./routes/orderRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./swagger');
+
 const app = express();
 
 app.use(cors());
@@ -22,6 +25,9 @@ app.use('/api/admins', adminRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/agent', agentRoutes);
+
+// Swagger UI Route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // === Initial Seeder ===
 async function seedAdmin() {
