@@ -21,9 +21,23 @@ model Product {
 }
 
 model Order {
-  id          Int      @id @default(autoincrement())
-  customer    String
-  total       Int
-  status      String   @default("PENDING")
-  createdAt   DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  orderNumber     String   @unique
+  customer        String
+  customerEmail   String?
+  customerPhone   String?
+  shippingAddress String?
+  paymentMethod   String   @default("CREDIT_CARD")
+  total           Int
+  status          String   @default("PENDING")
+  notes           String?
+  createdAt       DateTime @default(now())
+}
+
+model AdminUser {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      String   @default("SUB_ADMIN") // SUPER_ADMIN or SUB_ADMIN
+  createdAt DateTime @default(now())
 }

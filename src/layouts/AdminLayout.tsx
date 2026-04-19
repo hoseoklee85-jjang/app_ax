@@ -46,6 +46,28 @@ export default function AdminLayout() {
             >
               Products
             </Link>
+            <Link 
+              to="/orders" 
+              style={{ 
+                color: location.pathname === '/orders' ? 'var(--accent)' : 'var(--text-muted)',
+                textDecoration: 'none',
+                fontWeight: location.pathname === '/orders' ? 'bold' : 'normal',
+                transition: 'color 0.2s'
+              }}
+            >
+              Orders
+            </Link>
+            <Link 
+              to="/admins" 
+              style={{ 
+                color: location.pathname === '/admins' ? 'var(--accent)' : 'var(--text-muted)',
+                textDecoration: 'none',
+                fontWeight: location.pathname === '/admins' ? 'bold' : 'normal',
+                transition: 'color 0.2s'
+              }}
+            >
+              Admins
+            </Link>
           </nav>
           <button 
             onClick={handleLogout}

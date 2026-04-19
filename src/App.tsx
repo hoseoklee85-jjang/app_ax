@@ -4,6 +4,9 @@ import Dashboard from './pages/Dashboard';
 import ProductManage from './pages/ProductManage';
 import Login from './pages/Login';
 
+import AdminManage from './pages/AdminManage';
+import OrderManage from './pages/OrderManage';
+
 function App() {
   return (
     <BrowserRouter>
@@ -14,6 +17,8 @@ function App() {
         <Route path="/" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="products" element={<ProductManage />} />
+          <Route path="admins" element={<AdminManage />} />
+          <Route path="orders" element={<OrderManage />} />
         </Route>
         
         {/* 매칭되지 않는 주소는 모두 메인(또는 로그인)으로 강제 리다이렉트 */}
