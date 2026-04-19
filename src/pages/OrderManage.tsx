@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface OrderItem {
   id: number;
@@ -32,8 +34,8 @@ export default function OrderManage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [dateFilterStr, setDateFilterStr] = useState({ start: '', end: '' });
 
   const fetchOrders = async (status: string, searchStr: string = searchQuery, p: number = page, dates = dateFilterStr) => {
@@ -143,36 +145,61 @@ export default function OrderManage() {
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          <input 
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+          <DatePicker
+            selected={startDate}
+            onChange={(date: Date | null) => setStartDate(date)}
+            selectsStart
+            startDate={startDate || undefined}
+            endDate={endDate || undefined}
+            placeholderText="시작일"
+            dateFormat="yyyy-MM-dd"
+            customInput={<input style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '110px', textAlign: 'center' }} />}
           />
           <span style={{ padding: '0.6rem 0' }}>~</span>
-          <input 
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+          <DatePicker
+            selected={endDate}
+            onChange={(date: Date | null) => setEndDate(date)}
+            selectsEnd
+            startDate={startDate || undefined}
+            endDate={endDate || undefined}
+            minDate={startDate || undefined}
+            placeholderText="종료일"
+            dateFormat="yyyy-MM-dd"
+            customInput={<input style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', width: '110px', textAlign: 'center' }} />}
           />
           <input 
             type="text" 
             placeholder="고객명 또는 주문번호 검색..." 
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { setSearchQuery(searchInput); setDateFilterStr({ start: startDate, end: endDate }); setPage(1); } }}
+            onKeyDown={(e) => { 
+              if (e.key === 'Enter') { 
+                setSearchQuery(searchInput); 
+                setDateFilterStr({ 
+                  start: startDate ? startDate.toISOString().split('T')[0] : '', 
+                  end: endDate ? endDate.toISOString().split('T')[0] : '' 
+                }); 
+                setPage(1); 
+              } 
+            }}
             style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '0.95rem', minWidth: '200px' }}
           />
           <button 
-            onClick={() => { setSearchQuery(searchInput); setDateFilterStr({ start: startDate, end: endDate }); setPage(1); }}
+            onClick={() => { 
+              setSearchQuery(searchInput); 
+              setDateFilterStr({ 
+                start: startDate ? startDate.toISOString().split('T')[0] : '', 
+                end: endDate ? endDate.toISOString().split('T')[0] : '' 
+              }); 
+              setPage(1); 
+            }}
             style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '0 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             검색
           </button>
           {(searchQuery || dateFilterStr.start || dateFilterStr.end) && (
             <button 
-              onClick={() => { setSearchInput(''); setSearchQuery(''); setStartDate(''); setEndDate(''); setDateFilterStr({ start: '', end: '' }); setPage(1); }}
+              onClick={() => { setSearchInput(''); setSearchQuery(''); setStartDate(null); setEndDate(null); setDateFilterStr({ start: '', end: '' }); setPage(1); }}
               style={{ background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '0 1rem', borderRadius: '8px', cursor: 'pointer' }}
             >
               초기화
