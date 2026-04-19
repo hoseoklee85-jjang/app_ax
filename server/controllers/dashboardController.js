@@ -37,6 +37,12 @@ exports.getDashboardData = async (req, res) => {
       { name: 'Jun', sales: totalRevenue > 0 ? totalRevenue : Math.floor(Math.random() * 500000) + 100000 },
     ];
 
+    // 7. Low Stock Products
+    const lowStockProducts = await prisma.product.findMany({
+      take: 5,
+      orderBy: { stock: 'asc' }
+    });
+
     res.json({
       summary: {
         totalRevenue,
@@ -45,7 +51,8 @@ exports.getDashboardData = async (req, res) => {
         totalAdmins: totalAdminsCount
       },
       chartData: monthlyData,
-      recentOrders
+      recentOrders,
+      lowStockProducts
     });
 
   } catch (error) {

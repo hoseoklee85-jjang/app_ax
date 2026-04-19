@@ -56,7 +56,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem', flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '1rem', flex: 1, minHeight: 0 }}>
         {/* 2. Chart */}
         <div className="admin-panel" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', marginBottom: 0 }}>
           <h2 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Sales Overview (Last 6 Months)</h2>
@@ -117,6 +117,48 @@ export default function Dashboard() {
                         </span>
                       </td>
                       <td className="fw-bold text-accent" style={{ fontSize: '0.9rem', padding: '0.75rem 0.5rem' }}>${o.total.toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 4. Product Status (Low Stock) */}
+        <div className="admin-panel" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem', marginBottom: 0, overflow: 'hidden' }}>
+          <h2 style={{ marginBottom: '1rem', fontSize: '1.1rem', display: 'flex', justifyContent: 'space-between' }}>
+            <span>Product Inventory</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--warning)', fontWeight: 'normal' }}>Low Stock Alert</span>
+          </h2>
+          <div className="table-wrapper" style={{ flex: 1, overflowY: 'auto' }}>
+            <table className="product-table" style={{ width: '100%', margin: 0 }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Product Name</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Price</th>
+                  <th style={{ padding: '0.75rem 0.5rem' }}>Stock Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(!data.lowStockProducts || data.lowStockProducts.length === 0) ? (
+                  <tr>
+                    <td colSpan={3} className="text-center" style={{ padding: '2rem' }}>No products found.</td>
+                  </tr>
+                ) : (
+                  data.lowStockProducts.map((p: any) => (
+                    <tr key={p.id}>
+                      <td className="fw-bold" style={{ fontSize: '0.9rem', padding: '0.75rem 0.5rem' }}>{p.name}</td>
+                      <td style={{ fontSize: '0.9rem', padding: '0.75rem 0.5rem', color: 'var(--text-muted)' }}>${p.price.toLocaleString()}</td>
+                      <td style={{ padding: '0.75rem 0.5rem' }}>
+                        {p.stock === 0 ? (
+                          <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '0.85rem' }}>Out of Stock</span>
+                        ) : p.stock <= 10 ? (
+                          <span style={{ color: 'var(--warning)', fontWeight: 'bold', fontSize: '0.85rem' }}>Only {p.stock} left</span>
+                        ) : (
+                          <span style={{ color: 'var(--success)', fontSize: '0.85rem' }}>{p.stock} in stock</span>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
