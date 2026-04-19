@@ -30,16 +30,30 @@ export default function OrderManage() {
   const [activeTab, setActiveTab] = useState<'ALL' | 'PAID' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED' | 'RETURNED'>('ALL');
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [dateFilterStr, setDateFilterStr] = useState({ start: '', end: '' });
 
-  const fetchOrders = async (status: string, searchStr: string = searchQuery) => {
+  const fetchOrders = async (status: string, searchStr: string = searchQuery, p: number = page, dates = dateFilterStr) => {
     setLoading(true);
     try {
       const query = new URLSearchParams();
       if (status && status !== 'ALL') query.append('status', status);
       if (searchStr) query.append('search', searchStr);
+      if (dates.start) query.append('startDate', dates.start);
+      if (dates.end) query.append('endDate', dates.end);
+      query.append('page', p.toString());
+      
       const res = await fetch(`/api/orders?${query.toString()}`);
-      const data = await res.json();
-      setOrders(data);
+      const result = await res.json();
+      if (result.pagination) {
+        setOrders(result.data);
+        setTotalPages(result.pagination.totalPages);
+      } else {
+        setOrders(result);
+      }
     } catch (err) {
       console.error('Failed to fetch orders', err);
     } finally {
@@ -48,8 +62,8 @@ export default function OrderManage() {
   };
 
   useEffect(() => {
-    fetchOrders(activeTab, searchQuery);
-  }, [activeTab, searchQuery]);
+    fetchOrders(activeTab, searchQuery, page, dateFilterStr);
+  }, [activeTab, searchQuery, page, dateFilterStr]);
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     if (!confirm(`Are you sure you want to change this order's status to ${newStatus}?`)) return;
@@ -77,11 +91,40 @@ export default function OrderManage() {
       const res = await fetch('/api/orders/seed', { method: 'POST' });
       if (res.ok) {
         alert('Created 5 fake detailed orders successfully!');
-        fetchOrders(activeTab, searchQuery);
+        fetchOrders(activeTab, searchQuery, page, dateFilterStr);
       }
     } catch (err) {
       console.error('Failed to seed orders', err);
     }
+  };
+
+  const exportToCSV = () => {
+    if (orders.length === 0) return alert('No data to export');
+    const headers = ['Order Number', 'Date', 'Customer', 'Email', 'Phone', 'Total', 'Payment', 'Status'];
+    const rows = orders.map(o => [
+      o.orderNumber,
+      new Date(o.createdAt).toLocaleString(),
+      o.customer,
+      o.customerEmail || '',
+      o.customerPhone || '',
+      o.total,
+      o.paymentMethod,
+      o.status
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `orders_export_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -89,29 +132,47 @@ export default function OrderManage() {
       <section className="admin-panel" style={{ gridColumn: '1 / -1', paddingBottom: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <h2 style={{ margin: 0 }}>Order Management</h2>
-          <button onClick={handleSeedDummy} className="btn-primary" style={{ width: 'auto', background: 'var(--success)' }}>
-            + Create Fake Orders
-          </button>
+          <div>
+            <button onClick={handleSeedDummy} className="btn-primary" style={{ width: 'auto', background: 'var(--success)' }}>
+              + Create Fake Orders
+            </button>
+            <button onClick={exportToCSV} className="btn-primary" style={{ width: 'auto', background: 'var(--accent)', marginLeft: '1rem' }}>
+              Export CSV
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          <input 
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+          />
+          <span style={{ padding: '0.6rem 0' }}>~</span>
+          <input 
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            style={{ padding: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)' }}
+          />
           <input 
             type="text" 
             placeholder="고객명 또는 주문번호 검색..." 
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') setSearchQuery(searchInput); }}
-            style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '0.95rem' }}
+            onKeyDown={(e) => { if (e.key === 'Enter') { setSearchQuery(searchInput); setDateFilterStr({ start: startDate, end: endDate }); setPage(1); } }}
+            style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '0.95rem', minWidth: '200px' }}
           />
           <button 
-            onClick={() => setSearchQuery(searchInput)}
+            onClick={() => { setSearchQuery(searchInput); setDateFilterStr({ start: startDate, end: endDate }); setPage(1); }}
             style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '0 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             검색
           </button>
-          {searchQuery && (
+          {(searchQuery || dateFilterStr.start || dateFilterStr.end) && (
             <button 
-              onClick={() => { setSearchInput(''); setSearchQuery(''); }}
+              onClick={() => { setSearchInput(''); setSearchQuery(''); setStartDate(''); setEndDate(''); setDateFilterStr({ start: '', end: '' }); setPage(1); }}
               style={{ background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '0 1rem', borderRadius: '8px', cursor: 'pointer' }}
             >
               초기화
@@ -216,6 +277,20 @@ export default function OrderManage() {
                 )}
               </tbody>
             </table>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1.5rem' }}>
+            <button 
+              disabled={page === 1} 
+              onClick={() => setPage(p => p - 1)} 
+              style={{ padding: '0.4rem 1rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', cursor: page === 1 ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+            >Prev</button>
+            <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>Page {page} of {totalPages || 1}</span>
+            <button 
+              disabled={page >= totalPages} 
+              onClick={() => setPage(p => p + 1)} 
+              style={{ padding: '0.4rem 1rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', cursor: page >= totalPages ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+            >Next</button>
           </div>
         )}
       </section>

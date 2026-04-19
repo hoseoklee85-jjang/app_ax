@@ -3,7 +3,7 @@ const prisma = new PrismaClient();
 
 exports.getOrders = async (req, res) => {
   try {
-    const { status, search } = req.query;
+    const { status, search, startDate, endDate, page = 1, limit = 10 } = req.query;
     
     const filter = {};
     if (status) filter.status = status;
@@ -13,13 +13,39 @@ exports.getOrders = async (req, res) => {
         { orderNumber: { contains: search } }
       ];
     }
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.lte = end;
+      }
+    }
     
-    const orders = await prisma.order.findMany({
-      where: filter,
-      orderBy: { createdAt: 'desc' },
-      include: { items: true }
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+
+    const [orders, totalCount] = await Promise.all([
+      prisma.order.findMany({
+        where: filter,
+        orderBy: { createdAt: 'desc' },
+        include: { items: true },
+        skip,
+        take
+      }),
+      prisma.order.count({ where: filter })
+    ]);
+
+    res.json({
+      data: orders,
+      pagination: {
+        total: totalCount,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(totalCount / parseInt(limit))
+      }
     });
-    res.json(orders);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch orders' });
