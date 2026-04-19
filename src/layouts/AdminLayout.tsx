@@ -69,6 +69,23 @@ export default function AdminLayout() {
             >
               Admins
             </Link>
+            <a 
+              href="http://localhost:3000/api-docs" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ 
+                color: 'var(--text-muted)',
+                textDecoration: 'none',
+                transition: 'color 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.color = 'var(--accent)'}
+              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
+              API Docs ↗
+            </a>
           </nav>
           <button 
             onClick={handleLogout}
