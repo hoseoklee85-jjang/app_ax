@@ -210,7 +210,8 @@ export default function OrderManage() {
         {loading ? (
           <p>Loading orders...</p>
         ) : (
-          <div className="table-wrapper" style={{ overflowX: 'auto' }}>
+          <>
+            <div className="table-wrapper" style={{ overflowX: 'auto' }}>
             <table className="product-table" style={{ minWidth: '1000px' }}>
               <thead>
                 <tr>
@@ -292,6 +293,7 @@ export default function OrderManage() {
               style={{ padding: '0.4rem 1rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', cursor: page >= totalPages ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
             >Next</button>
           </div>
+          </>
         )}
       </section>
     </>
