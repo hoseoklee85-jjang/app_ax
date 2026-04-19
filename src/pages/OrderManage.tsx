@@ -28,11 +28,15 @@ export default function OrderManage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'PAID' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED' | 'RETURNED'>('PAID');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchOrders = async (status: string) => {
+  const fetchOrders = async (status: string, searchStr: string = searchQuery) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/orders?status=${status}`);
+      const query = new URLSearchParams({ status });
+      if (searchStr) query.append('search', searchStr);
+      const res = await fetch(`/api/orders?${query.toString()}`);
       const data = await res.json();
       setOrders(data);
     } catch (err) {
@@ -43,8 +47,8 @@ export default function OrderManage() {
   };
 
   useEffect(() => {
-    fetchOrders(activeTab);
-  }, [activeTab]);
+    fetchOrders(activeTab, searchQuery);
+  }, [activeTab, searchQuery]);
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     if (!confirm(`Are you sure you want to change this order's status to ${newStatus}?`)) return;
@@ -56,7 +60,7 @@ export default function OrderManage() {
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
-        fetchOrders(activeTab);
+        fetchOrders(activeTab, searchQuery);
       } else {
         const data = await res.json();
         alert(data.error || '상태 변경 실패');
@@ -72,7 +76,7 @@ export default function OrderManage() {
       const res = await fetch('/api/orders/seed', { method: 'POST' });
       if (res.ok) {
         alert('Created 5 fake detailed orders successfully!');
-        fetchOrders(activeTab);
+        fetchOrders(activeTab, searchQuery);
       }
     } catch (err) {
       console.error('Failed to seed orders', err);
@@ -87,6 +91,31 @@ export default function OrderManage() {
           <button onClick={handleSeedDummy} className="btn-primary" style={{ width: 'auto', background: 'var(--success)' }}>
             + Create Fake Orders
           </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+          <input 
+            type="text" 
+            placeholder="고객명 또는 주문번호 검색..." 
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') setSearchQuery(searchInput); }}
+            style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '0.95rem' }}
+          />
+          <button 
+            onClick={() => setSearchQuery(searchInput)}
+            style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '0 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            검색
+          </button>
+          {searchQuery && (
+            <button 
+              onClick={() => { setSearchInput(''); setSearchQuery(''); }}
+              style={{ background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border)', padding: '0 1rem', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              초기화
+            </button>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)' }}>
@@ -122,12 +151,13 @@ export default function OrderManage() {
             <table className="product-table" style={{ minWidth: '1000px' }}>
               <thead>
                 <tr>
-                  <th>Order No.</th>
-                  <th>Customer Info</th>
-                  <th>Shipping Address</th>
-                  <th>Payment / Total</th>
+                  <th style={{ width: '40px', textAlign: 'center' }}><input type="checkbox" /></th>
+                  <th>Order #</th>
+                  <th>Purchase Date</th>
+                  <th>Customer Name</th>
+                  <th>Grand Total</th>
                   <th>Status</th>
-                  <th>Actions</th>
+                  <th style={{ textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -139,23 +169,16 @@ export default function OrderManage() {
                   </tr>
                 ) : (
                   orders.map(o => (
-                    <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} style={{ cursor: 'pointer' }}>
-                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{o.orderNumber}</td>
+                    <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} style={{ cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}><input type="checkbox" /></td>
+                      <td style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 'bold' }}>{o.orderNumber}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(o.createdAt).toLocaleString()}</td>
                       <td>
-                        <div className="fw-bold">{o.customer}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{o.customerPhone}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{o.customerEmail}</div>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{o.customer}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{o.customerEmail || o.customerPhone}</div>
                       </td>
                       <td>
-                        <div style={{ 
-                          maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', 
-                          textOverflow: 'ellipsis', fontSize: '0.9rem' 
-                        }} title={o.shippingAddress || ''}>
-                          {o.shippingAddress}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="fw-bold text-accent">${o.total.toLocaleString()}</div>
+                        <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--text-main)' }}>₩{o.total.toLocaleString()}</div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{o.paymentMethod}</div>
                       </td>
                       <td>
@@ -169,37 +192,22 @@ export default function OrderManage() {
                           style={{
                             background: o.status === 'CANCELLED' || o.status === 'RETURNED' ? 'rgba(239, 68, 68, 0.1)' : undefined,
                             color: o.status === 'CANCELLED' || o.status === 'RETURNED' ? '#ef4444' : undefined,
-                            borderRadius: '4px'
+                            borderRadius: '4px',
+                            padding: '0.3rem 0.6rem',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold'
                           }}
                         >
                           {o.status}
                         </span>
                       </td>
-                      <td>
-                        {o.status === 'PAID' && (
-                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'SHIPPING'); }}
-                              style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                            >Ship (배송)</button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'CANCELLED'); }}
-                              style={{ background: '#ef4444', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                            >Cancel</button>
-                          </div>
-                        )}
-                        {o.status === 'SHIPPING' && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'DELIVERED'); }}
-                            style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                          >Deliver (완료)</button>
-                        )}
-                        {o.status === 'DELIVERED' && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleStatusChange(o.id, 'RETURNED'); }}
-                            style={{ background: 'var(--warning)', color: 'white', border: 'none', padding: '0.4rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                          >Return (반품)</button>
-                        )}
+                      <td style={{ textAlign: 'center' }}>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); navigate(`/orders/${o.id}`); }}
+                          style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'none', fontSize: '0.9rem' }}
+                        >
+                          View
+                        </button>
                       </td>
                     </tr>
                   ))

@@ -3,8 +3,16 @@ const prisma = new PrismaClient();
 
 exports.getOrders = async (req, res) => {
   try {
-    const { status } = req.query;
-    const filter = status ? { status } : {};
+    const { status, search } = req.query;
+    
+    const filter = {};
+    if (status) filter.status = status;
+    if (search) {
+      filter.OR = [
+        { customer: { contains: search } },
+        { orderNumber: { contains: search } }
+      ];
+    }
     
     const orders = await prisma.order.findMany({
       where: filter,
