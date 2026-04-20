@@ -30,8 +30,19 @@ app.use('/api/agent', agentRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // === Initial Seeder ===
-async function seedAdmin() {
+async function seedData() {
   try {
+    const storeCount = await prisma.store.count();
+    if (storeCount === 0) {
+      await prisma.store.createMany({
+        data: [
+          { id: 'KR', name: 'Korea', currency: 'KRW', timezone: 'Asia/Seoul' },
+          { id: 'US', name: 'USA', currency: 'USD', timezone: 'America/New_York' }
+        ]
+      });
+      console.log('Seeded default stores (KR, US)');
+    }
+
     const adminCount = await prisma.adminUser.count();
     if (adminCount === 0) {
       await prisma.adminUser.create({
@@ -50,6 +61,6 @@ async function seedAdmin() {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
-  await seedAdmin();
+  await seedData();
   console.log(`Server is running on http://localhost:${PORT}`);
 });

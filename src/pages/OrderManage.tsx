@@ -244,7 +244,7 @@ export default function OrderManage() {
                 <tr>
                   <th style={{ width: '40px', textAlign: 'center' }}><input type="checkbox" /></th>
                   <th>Order #</th>
-                  <th>Region</th>
+                  <th>Products (Items)</th>
                   <th>Purchase Date</th>
                   <th>Customer Name</th>
                   <th>Grand Total</th>
@@ -264,6 +264,16 @@ export default function OrderManage() {
                     <tr key={o.id} onClick={() => navigate(`/orders/${o.id}`)} style={{ cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
                       <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}><input type="checkbox" /></td>
                       <td style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 'bold' }}>{o.orderNumber}</td>
+                      <td>
+                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
+                          {o.items && o.items.length > 0 
+                            ? `${o.items[0].productName} ${o.items.length > 1 ? `외 ${o.items.length - 1}건` : ''}`
+                            : 'No items'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          총 {o.items?.reduce((acc, curr) => acc + curr.quantity, 0) || 0}개 상품
+                        </div>
+                      </td>
                       <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(o.createdAt).toLocaleString()}</td>
                       <td>
                         <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{o.customer}</div>
