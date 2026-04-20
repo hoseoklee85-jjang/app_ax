@@ -103,6 +103,7 @@ router.get('/:id', orderController.getOrderById);
  *         description: 주문 상태 변경 성공
  */
 router.patch('/:id/status', orderController.updateOrderStatus);
+router.patch('/:id/items/:itemId/status', orderController.updateOrderItemStatus);
 
 router.post('/seed', orderController.seedDummyOrders);
 

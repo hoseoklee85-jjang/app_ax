@@ -8,6 +8,7 @@ interface OrderItem {
   productName: string;
   price: number;
   quantity: number;
+  status: string;
 }
 
 interface Order {
@@ -210,11 +211,11 @@ export default function OrderManage() {
         <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
           {[
             { label: '전체 보기', value: 'ALL' },
-            { label: '💰 PAID (결제완료)', value: 'PAID' },
-            { label: '🚚 SHIPPING (배송중)', value: 'SHIPPING' },
-            { label: '📦 DELIVERED (배송완료)', value: 'DELIVERED' },
-            { label: '🚫 CANCELLED (취소)', value: 'CANCELLED' },
-            { label: '↩️ RETURNED (반품)', value: 'RETURNED' }
+            { label: '💰 결제완료', value: 'PAID' },
+            { label: '🚚 진행/배송', value: 'IN_TRANSIT' },
+            { label: '🏁 배송완료', value: 'DELIVERED' },
+            { label: '🚫 취소', value: 'CANCELLED' },
+            { label: '↩️ 반품', value: 'RETURNED' }
           ].map(tab => (
             <button
               key={tab.value}
@@ -265,13 +266,23 @@ export default function OrderManage() {
                       <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}><input type="checkbox" /></td>
                       <td style={{ fontSize: '0.9rem', color: 'var(--accent)', fontWeight: 'bold' }}>{o.orderNumber}</td>
                       <td>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
-                          {o.items && o.items.length > 0 
-                            ? `${o.items[0].productName} ${o.items.length > 1 ? `외 ${o.items.length - 1}건` : ''}`
-                            : 'No items'}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          총 {o.items?.reduce((acc, curr) => acc + curr.quantity, 0) || 0}개 상품
+                        <div style={{ fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {!o.items || o.items.length === 0 ? (
+                            <div style={{ color: 'var(--text-muted)' }}>No items</div>
+                          ) : null}
+                          {o.items?.map((item: any) => (
+                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ color: 'var(--text-muted)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>- {item.productName}</span>
+                              <span style={{ fontSize: '0.7rem', padding: '1px 4px', borderRadius: '4px', background: 'var(--bg-main)', border: '1px solid var(--border)', fontWeight: 'bold', color: 'var(--accent)' }}>
+                                {item.status === 'PREP_SHIPPING' ? '배송준비' : 
+                                 item.status === 'PICKING' ? '피킹중' : 
+                                 item.status === 'SHIPPING' ? '배송중' : 
+                                 item.status === 'DELIVERED' ? '배송완료' :
+                                 item.status === 'CANCELLED' ? '취소' :
+                                 item.status === 'RETURNED' ? '반품' : '결제완료'}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </td>
                       <td style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{new Date(o.createdAt).toLocaleString()}</td>
@@ -287,6 +298,8 @@ export default function OrderManage() {
                         <span 
                           className={
                             o.status === 'PAID' ? 'badge-primary' : 
+                            o.status === 'PREP_SHIPPING' ? 'badge-primary' : 
+                            o.status === 'PICKING' ? 'badge-primary' : 
                             o.status === 'SHIPPING' ? 'badge-primary' : 
                             o.status === 'DELIVERED' ? 'badge-success' : 
                             'badge-warning'

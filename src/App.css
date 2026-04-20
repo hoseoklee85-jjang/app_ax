@@ -34,6 +34,8 @@ body {
 .admin-header h1 {
   font-size: 2rem;
   margin: 0;
+  padding-bottom: 5px; /* Prevent bottom cut-off for letters like 'g' and emojis */
+  line-height: 1.2;
   background: linear-gradient(135deg, #4f46e5, #3b82f6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

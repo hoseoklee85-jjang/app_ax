@@ -33,7 +33,7 @@ const tools = [
         action: { type: 'string', description: "One of: 'READ', 'UPDATE', 'DELETE', 'SEED'" },
         filters: { type: 'object', description: 'Filters for READ. e.g., { status: "COMPLETED" }' },
         id: { type: 'integer', description: 'ID of the order to update/delete' },
-        data: { type: 'object', description: 'Data to update. For status use "COMPLETED", "CANCELLED", "RETURNED".' }
+        data: { type: 'object', description: 'Data to update. For status use "PAID", "PREP_SHIPPING", "PICKING", "SHIPPING", "DELIVERED", "CANCELLED", "RETURNED".' }
       },
       required: ['action']
     }
@@ -47,7 +47,7 @@ const tools = [
         action: { type: 'string', description: "One of: 'READ', 'CREATE', 'UPDATE', 'DELETE', 'SEED'" },
         filters: { type: 'object', description: 'Filters for READ' },
         id: { type: 'integer', description: 'ID of the product' },
-        data: { type: 'object', description: 'Data to create/update. e.g. { name: "Shoes", price: 10000, stock: 50 }' }
+        data: { type: 'object', description: 'Data to create/update. e.g. { productCode: "PRD-001", name: "Shoes", price: 10000, stock: 50 }' }
       },
       required: ['action']
     }
@@ -117,7 +117,7 @@ exports.chat = async (req, res) => {
     const model = genAI.getGenerativeModel({
       model: 'gemini-flash-latest',
       tools: [{ functionDeclarations: tools }],
-      systemInstruction: 'You are an omnipotent AI assistant built into an E-commerce Admin Dashboard. You speak politely in Korean.\n\nIMPORTANT RULES:\n1. If a user asks to cancel an order ("취소"), update the status to "CANCELLED". If return ("반품"), update to "RETURNED".\n2. You have full access to manage Orders, Products, and Admins via the database. If asked to query or change something, use the manage* tools.\n3. After calling a tool, you must summarize the result naturally and concisely for the user.'
+      systemInstruction: 'You are an omnipotent AI assistant built into an E-commerce Admin Dashboard. You speak politely in Korean.\n\nIMPORTANT RULES:\n1. Order statuses are: PAID (결제완료), PREP_SHIPPING (배송준비중), PICKING (피킹중), SHIPPING (배송중), DELIVERED (배송완료), CANCELLED (취소), RETURNED (반품).\n2. If a user asks to cancel an order, check its status using manageOrders. Do not attempt to cancel if status is PICKING, SHIPPING, or DELIVERED. You can only update the status to CANCELLED if it is PAID or PREP_SHIPPING.\n3. You can set the product code (`productCode`) when creating a product.\n4. You have full access to manage Orders, Products, and Admins via the database. If asked to query or change something, use the manage* tools.\n5. After calling a tool, you must summarize the result naturally and concisely for the user.'
     });
 
     const chat = model.startChat();

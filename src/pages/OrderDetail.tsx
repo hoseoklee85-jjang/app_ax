@@ -3,9 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 
 interface OrderItem {
   id: number;
+  productId?: number;
   productName: string;
   price: number;
   quantity: number;
+  status: string;
+}
+
+interface OrderStatusHistory {
+  id: number;
+  oldStatus?: string;
+  newStatus: string;
+  changedBy: string;
+  createdAt: string;
 }
 
 interface Order {
@@ -21,6 +31,7 @@ interface Order {
   notes: string | null;
   createdAt: string;
   items?: OrderItem[];
+  statusHistory?: OrderStatusHistory[];
 }
 
 export default function OrderDetail() {
@@ -68,6 +79,25 @@ export default function OrderDetail() {
     }
   };
 
+  const handleItemStatusChange = async (itemId: number, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/orders/${id}/items/${itemId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        fetchOrder();
+      } else {
+        const data = await res.json();
+        alert(data.error || '아이템 상태 변경 실패');
+      }
+    } catch (err) {
+      console.error('Failed to update item status', err);
+      alert('서버 오류가 발생했습니다.');
+    }
+  };
+
   if (loading) {
     return (
       <section className="admin-panel" style={{ gridColumn: '1 / -1' }}>
@@ -96,7 +126,7 @@ export default function OrderDetail() {
         <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '1rem' }}>
           Order &nbsp; {order.orderNumber}
           <span className={
-            order.status === 'PAID' || order.status === 'SHIPPING' ? 'badge-primary' : 
+            ['PAID', 'PREP_SHIPPING', 'PICKING', 'SHIPPING'].includes(order.status) ? 'badge-primary' : 
             order.status === 'DELIVERED' ? 'badge-success' : 'badge-warning'
           } style={{ 
             borderRadius: '4px', padding: '0.2rem 0.5rem', fontSize: '0.8rem',
@@ -120,9 +150,20 @@ export default function OrderDetail() {
                 style={{ background: '#ef4444', color: 'white', border: 'none', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
               >Cancel</button>
               <button 
-                onClick={() => handleStatusChange('SHIPPING')}
+                onClick={() => handleStatusChange('PREP_SHIPPING')}
                 style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-              >Ship</button>
+              >Prep Shipping</button>
+            </>
+          )}
+          {order.status === 'PREP_SHIPPING' && (
+            <>
+              <button onClick={() => handleStatusChange('CANCELLED')} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cancel</button>
+              <button onClick={() => handleStatusChange('PICKING')} style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Start Picking</button>
+            </>
+          )}
+          {order.status === 'PICKING' && (
+            <>
+              <button onClick={() => handleStatusChange('SHIPPING')} style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '0.4rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Ship</button>
             </>
           )}
           {order.status === 'SHIPPING' && (
@@ -212,8 +253,27 @@ export default function OrderDetail() {
               {order.items && order.items.length > 0 ? (
                 order.items.map((item, idx) => (
                   <tr key={item.id || idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '1rem', fontWeight: 'bold' }}>{item.productName}</td>
-                    <td style={{ padding: '1rem', textAlign: 'center' }}>Invoiced</td>
+                    <td style={{ padding: '1rem' }}>
+                      <div style={{ fontWeight: 'bold' }}>{item.productName}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        코드: {item.productId ? `PRD-${item.productId.toString().padStart(4, '0')}` : 'N/A'}
+                      </div>
+                    </td>
+                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                      <select 
+                        value={item.status || 'PAID'}
+                        onChange={(e) => handleItemStatusChange(item.id, e.target.value)}
+                        style={{ padding: '0.3rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                      >
+                        <option value="PAID">결제완료</option>
+                        <option value="PREP_SHIPPING">배송준비중</option>
+                        <option value="PICKING">피킹중</option>
+                        <option value="SHIPPING">배송중</option>
+                        <option value="DELIVERED">배송완료</option>
+                        <option value="CANCELLED">취소</option>
+                        <option value="RETURNED">반품</option>
+                      </select>
+                    </td>
                     <td style={{ padding: '1rem', textAlign: 'right' }}>₩{item.price.toLocaleString()}</td>
                     <td style={{ padding: '1rem', textAlign: 'center' }}>
                       <div style={{ display: 'inline-block', textAlign: 'left' }}>
@@ -236,9 +296,47 @@ export default function OrderDetail() {
         </div>
       </section>
 
-      {/* Order Totals */}
-      <section style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', marginBottom: '3rem' }}>
-        <div className="admin-panel" style={{ width: '350px', padding: '1.5rem' }}>
+      {/* Bottom Section: History & Totals */}
+      <section style={{ gridColumn: '1 / -1', display: 'flex', gap: '1.5rem', marginBottom: '3rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        
+        {/* Status History */}
+        <div style={{ flex: 1, minWidth: '300px' }}>
+          {order.statusHistory && order.statusHistory.length > 0 && (
+            <div className="admin-panel" style={{ padding: '1.5rem', height: '100%', boxSizing: 'border-box' }}>
+              <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>Order Status History</h3>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {order.statusHistory.map((history, idx) => (
+                  <li key={history.id} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', paddingBottom: idx !== order.statusHistory!.length - 1 ? '1rem' : '0', borderBottom: idx !== order.statusHistory!.length - 1 ? '1px dashed var(--border)' : 'none', marginBottom: idx !== order.statusHistory!.length - 1 ? '1rem' : '0' }}>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', width: '130px', flexShrink: 0 }}>
+                      {new Date(history.createdAt).toLocaleString()}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {history.oldStatus && (
+                        <>
+                          <span className="badge-warning" style={{ background: 'var(--bg-main)', color: 'var(--text-main)', border: '1px solid var(--border)' }}>{history.oldStatus}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>→</span>
+                        </>
+                      )}
+                      <span className={
+                        history.newStatus === 'PAID' ? 'badge-primary' : 
+                        history.newStatus === 'DELIVERED' ? 'badge-success' : 
+                        history.newStatus === 'CANCELLED' || history.newStatus === 'RETURNED' ? 'badge-warning' : 'badge-primary'
+                      } style={{ 
+                        background: history.newStatus === 'CANCELLED' || history.newStatus === 'RETURNED' ? 'rgba(239, 68, 68, 0.1)' : undefined,
+                        color: history.newStatus === 'CANCELLED' || history.newStatus === 'RETURNED' ? '#ef4444' : undefined,
+                        fontWeight: 'bold', borderRadius: '4px', padding: '0.2rem 0.5rem', fontSize: '0.8rem'
+                      }}>{history.newStatus}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>by {history.changedBy}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Order Totals */}
+        <div className="admin-panel" style={{ width: '350px', padding: '1.5rem', flexShrink: 0 }}>
           <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>Order Totals</h3>
           
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.8rem', fontSize: '0.9rem' }}>

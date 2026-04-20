@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 interface Product {
   id: number;
+  productCode?: string;
   name: string;
   price: number;
   description: string;
@@ -14,6 +15,7 @@ export default function ProductManage() {
   const [loading, setLoading] = useState(true);
   const [langTab, setLangTab] = useState('en');
   const [form, setForm] = useState({ 
+    productCode: '',
     price: '', 
     stock: '',
     translations: {
@@ -49,6 +51,7 @@ export default function ProductManage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          productCode: form.productCode ? form.productCode : undefined,
           name: form.translations.en.name,
           price: parseInt(form.price),
           description: form.translations.en.description,
@@ -62,7 +65,7 @@ export default function ProductManage() {
       });
       if (res.ok) {
         setForm({ 
-          price: '', stock: '', 
+          productCode: '', price: '', stock: '', 
           translations: { en: { name: '', description: '' }, ko: { name: '', description: '' } } 
         });
         fetchProducts(); // Refresh list
@@ -83,6 +86,10 @@ export default function ProductManage() {
           </div>
         </div>
         <form onSubmit={handleSubmit} className="product-form">
+          <div className="form-group">
+            <label>Product Code (Optional)</label>
+            <input type="text" value={form.productCode} onChange={e => setForm({...form, productCode: e.target.value})} placeholder="e.g. PRD-A001" />
+          </div>
           <div className="form-group">
             <label>Product Name ({langTab.toUpperCase()})</label>
             <input type="text" value={form.translations[langTab as 'en'|'ko'].name} onChange={e => setForm({...form, translations: {...form.translations, [langTab]: {...form.translations[langTab as 'en'|'ko'], name: e.target.value}}})} placeholder="e.g. Wireless Mouse" />
@@ -115,6 +122,7 @@ export default function ProductManage() {
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Product Code</th>
                   <th>Name</th>
                   <th>Price</th>
                   <th>Stock</th>
@@ -124,12 +132,13 @@ export default function ProductManage() {
               <tbody>
                 {products.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center">No products found. Add one!</td>
+                    <td colSpan={6} className="text-center">No products found. Add one!</td>
                   </tr>
                 ) : (
                   products.map(p => (
                     <tr key={p.id}>
                       <td>#{p.id}</td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{p.productCode || '-'}</td>
                       <td className="fw-bold">{p.name}</td>
                       <td>${p.price.toLocaleString()}</td>
                       <td>

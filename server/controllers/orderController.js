@@ -7,7 +7,13 @@ exports.getOrders = async (req, res) => {
     
     const filter = {};
     if (storeId && storeId !== 'ALL') filter.storeId = storeId;
-    if (status) filter.status = status;
+    if (status) {
+      if (status === 'IN_TRANSIT') {
+        filter.status = { in: ['PREP_SHIPPING', 'PICKING', 'SHIPPING'] };
+      } else {
+        filter.status = status;
+      }
+    }
     if (search) {
       filter.OR = [
         { customer: { contains: search } },
@@ -58,7 +64,7 @@ exports.getOrderById = async (req, res) => {
     const { id } = req.params;
     const order = await prisma.order.findUnique({
       where: { id: parseInt(id) },
-      include: { items: true }
+      include: { items: true, statusHistory: { orderBy: { createdAt: 'desc' } } }
     });
     
     if (!order) return res.status(404).json({ error: 'Order not found' });
@@ -127,6 +133,9 @@ exports.createOrder = async (req, res) => {
           notes,
           items: {
             create: orderItemsToCreate
+          },
+          statusHistory: {
+            create: { newStatus: 'PAID' }
           }
         },
         include: { items: true }
@@ -145,24 +154,79 @@ exports.updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
-    const order = await prisma.order.findUnique({ where: { id: parseInt(id) } });
+    const order = await prisma.order.findUnique({ 
+      where: { id: parseInt(id) },
+      include: { items: true } // get items to restore stock
+    });
+    
     if (!order) return res.status(404).json({ error: 'Order not found' });
     
-    if (status === 'CANCELLED' && order.status !== 'PAID') {
-      return res.status(400).json({ error: '취소는 결제완료(PAID) 상태에서만 가능합니다.' });
+    if (status === 'CANCELLED' && !['PAID', 'PREP_SHIPPING'].includes(order.status)) {
+      return res.status(400).json({ error: '취소는 결제완료(PAID) 및 배송준비중(PREP_SHIPPING) 단계에서만 가능합니다.' });
     }
     if (status === 'RETURNED' && order.status !== 'DELIVERED') {
       return res.status(400).json({ error: '반품은 배송완료(DELIVERED) 상태에서만 가능합니다.' });
     }
     
-    const updatedOrder = await prisma.order.update({
-      where: { id: parseInt(id) },
-      data: { status }
-    });
+    let updatedOrder;
+
+    // 만약 취소(CANCELLED) 또는 반품(RETURNED)으로 상태가 변경되는 경우 재고 복구
+    if ((status === 'CANCELLED' || status === 'RETURNED') && 
+        (order.status !== 'CANCELLED' && order.status !== 'RETURNED')) {
+      updatedOrder = await prisma.$transaction(async (tx) => {
+        // 재고 원복
+        for (const item of order.items) {
+          if (item.productId) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: item.quantity } }
+            });
+          }
+        }
+        // 상태 업데이트 및 이력 기록
+        return await tx.order.update({
+          where: { id: parseInt(id) },
+          data: { 
+            status,
+            statusHistory: {
+              create: { oldStatus: order.status, newStatus: status }
+            }
+          }
+        });
+      });
+    } else {
+      updatedOrder = await prisma.order.update({
+        where: { id: parseInt(id) },
+        data: { 
+          status,
+          statusHistory: {
+            create: { oldStatus: order.status, newStatus: status }
+          }
+        }
+      });
+    }
+
     res.json(updatedOrder);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to update order status' });
+  }
+};
+
+exports.updateOrderItemStatus = async (req, res) => {
+  try {
+    const { id, itemId } = req.params;
+    const { status } = req.body;
+    
+    const updatedItem = await prisma.orderItem.update({
+      where: { id: parseInt(itemId) },
+      data: { status }
+    });
+    
+    res.json(updatedItem);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update order item status' });
   }
 };
 
@@ -238,6 +302,9 @@ exports.seedDummyOrders = async (req, res) => {
           status: 'PAID',
           items: {
             create: items
+          },
+          statusHistory: {
+            create: { newStatus: 'PAID' }
           }
         }
       });

@@ -25,10 +25,11 @@ exports.getProducts = async (req, res) => {
 // POST: 새 상품 등록
 exports.createProduct = async (req, res) => {
   try {
-    const { name, price, description, stock, storeId = 'KR', translations = [] } = req.body;
+    const { name, productCode, price, description, stock, storeId = 'KR', translations = [] } = req.body;
     const newProduct = await prisma.product.create({
       data: { 
         name, 
+        productCode: productCode ? String(productCode) : null,
         price: Number(price), 
         description, 
         stock: Number(stock),
