@@ -1,16 +1,23 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// Adapter Helper: DB 모델 -> 프론트엔드 기대 모델
+function adaptAdmin(dbAdmin) {
+  const { password, ...rest } = dbAdmin;
+  return {
+    ...rest,
+    id: dbAdmin.id.toString(), // BigInt to string
+    createdAt: dbAdmin.created_at
+  };
+}
+
 exports.getAdmins = async (req, res) => {
   try {
-    const admins = await prisma.adminUser.findMany({
-      orderBy: { createdAt: 'desc' }
+    const admins = await prisma.admin_users.findMany({
+      orderBy: { created_at: 'desc' }
     });
-    const safeAdmins = admins.map(admin => {
-      const { password, ...rest } = admin;
-      return rest;
-    });
-    res.json(safeAdmins);
+    
+    res.json(admins.map(adaptAdmin));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch admins' });
@@ -21,17 +28,16 @@ exports.createAdmin = async (req, res) => {
   try {
     const { username, password, role } = req.body;
     
-    const existing = await prisma.adminUser.findUnique({ where: { username } });
+    const existing = await prisma.admin_users.findUnique({ where: { username } });
     if (existing) {
       return res.status(400).json({ error: 'Username already exists' });
     }
 
-    const newAdmin = await prisma.adminUser.create({
+    const newAdmin = await prisma.admin_users.create({
       data: { username, password, role: role || 'SUB_ADMIN' }
     });
 
-    const { password: pwd, ...safeAdmin } = newAdmin;
-    res.status(201).json(safeAdmin);
+    res.status(201).json(adaptAdmin(newAdmin));
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to create admin' });
@@ -41,8 +47,8 @@ exports.createAdmin = async (req, res) => {
 exports.deleteAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    await prisma.adminUser.delete({
-      where: { id: parseInt(id) }
+    await prisma.admin_users.delete({
+      where: { id: BigInt(id) }
     });
     res.json({ success: true });
   } catch (error) {

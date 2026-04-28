@@ -9,6 +9,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const agentRoutes = require('./routes/agentRoutes');
+const storeRoutes = require('./routes/storeRoutes');
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./swagger');
@@ -25,27 +26,22 @@ app.use('/api/admins', adminRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/agent', agentRoutes);
+app.use('/api/stores', storeRoutes);
 
 // Swagger UI Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
+// BigInt 직렬화 (JSON.stringify) 지원 패치
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+
 // === Initial Seeder ===
 async function seedData() {
   try {
-    const storeCount = await prisma.store.count();
-    if (storeCount === 0) {
-      await prisma.store.createMany({
-        data: [
-          { id: 'KR', name: 'Korea', currency: 'KRW', timezone: 'Asia/Seoul' },
-          { id: 'US', name: 'USA', currency: 'USD', timezone: 'America/New_York' }
-        ]
-      });
-      console.log('Seeded default stores (KR, US)');
-    }
-
-    const adminCount = await prisma.adminUser.count();
+    const adminCount = await prisma.admin_users.count();
     if (adminCount === 0) {
-      await prisma.adminUser.create({
+      await prisma.admin_users.create({
         data: {
           username: 'admin',
           password: 'admin123',

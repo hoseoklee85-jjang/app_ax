@@ -30,7 +30,6 @@ export default function OrderManage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'PAID' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED' | 'RETURNED'>('ALL');
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -65,36 +64,15 @@ export default function OrderManage() {
   };
 
   useEffect(() => {
-    fetchOrders(activeTab, searchQuery, page, dateFilterStr);
-  }, [activeTab, searchQuery, page, dateFilterStr]);
-
-  const handleStatusChange = async (id: number, newStatus: string) => {
-    if (!confirm(`Are you sure you want to change this order's status to ${newStatus}?`)) return;
-    
-    try {
-      const res = await fetch(`/api/orders/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (res.ok) {
-        fetchOrders(activeTab, searchQuery);
-      } else {
-        const data = await res.json();
-        alert(data.error || '상태 변경 실패');
-      }
-    } catch (err) {
-      console.error('Failed to update status', err);
-      alert('서버 오류가 발생했습니다.');
-    }
-  };
+    fetchOrders('ALL', searchQuery, page, dateFilterStr);
+  }, [searchQuery, page, dateFilterStr]);
 
   const handleSeedDummy = async () => {
     try {
       const res = await fetch('/api/orders/seed', { method: 'POST' });
       if (res.ok) {
         alert('Created 5 fake detailed orders successfully!');
-        fetchOrders(activeTab, searchQuery, page, dateFilterStr);
+        fetchOrders('ALL', searchQuery, page, dateFilterStr);
       }
     } catch (err) {
       console.error('Failed to seed orders', err);
@@ -208,30 +186,7 @@ export default function OrderManage() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
-          {[
-            { label: '전체 보기', value: 'ALL' },
-            { label: '💰 결제완료', value: 'PAID' },
-            { label: '🚚 진행/배송', value: 'IN_TRANSIT' },
-            { label: '🏁 배송완료', value: 'DELIVERED' },
-            { label: '🚫 취소', value: 'CANCELLED' },
-            { label: '↩️ 반품', value: 'RETURNED' }
-          ].map(tab => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value as any)}
-              style={{
-                background: 'transparent', border: 'none', padding: '1rem 1.5rem',
-                color: activeTab === tab.value ? 'var(--accent)' : 'var(--text-muted)',
-                borderBottom: activeTab === tab.value ? '3px solid var(--accent)' : '3px solid transparent',
-                cursor: 'pointer', fontWeight: activeTab === tab.value ? 'bold' : 'normal',
-                fontSize: '1rem', transition: 'all 0.2s'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+
       </section>
 
       <section className="admin-panel product-list-panel" style={{ gridColumn: '1 / -1', marginTop: '-1rem' }}>

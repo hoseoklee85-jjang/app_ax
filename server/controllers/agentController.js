@@ -74,7 +74,7 @@ async function executeManageEntity(modelName, args) {
   
   try {
     if (action === 'READ') {
-      const includeOpts = modelName === 'order' ? { items: true } : undefined;
+      const includeOpts = modelName === 'orders' ? { order_items: true } : undefined;
       const records = await db.findMany({ where: filters || {}, take: 20, orderBy: { id: 'desc' }, include: includeOpts });
       return { success: true, records };
     } else if (action === 'CREATE') {
@@ -111,13 +111,23 @@ async function executeManageEntity(modelName, args) {
 
 exports.chat = async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, agentId } = req.body;
     if (!message) return res.status(400).json({ error: 'Message is required' });
+
+    let systemInstruction = 'You are an omnipotent AI assistant built into an E-commerce Admin Dashboard. You speak politely in Korean.\n\nIMPORTANT RULES:\n1. Order statuses are: PAID (결제완료), PREP_SHIPPING (배송준비중), PICKING (피킹중), SHIPPING (배송중), DELIVERED (배송완료), CANCELLED (취소), RETURNED (반품).\n2. If a user asks to cancel an order, check its status using manageOrders. Do not attempt to cancel if status is PICKING, SHIPPING, or DELIVERED. You can only update the status to CANCELLED if it is PAID or PREP_SHIPPING.\n3. You can set the product code (`productCode`) when creating a product.\n4. You have full access to manage Orders, Products, and Admins via the database. If asked to query or change something, use the manage* tools.\n5. After calling a tool, you must summarize the result naturally and concisely for the user.';
+
+    if (agentId === 'order') {
+      systemInstruction = 'You are the Order AI for an E-commerce Admin Dashboard. You specialize EXCLUSIVELY in reading, updating, deleting, or seeding Orders using the manageOrders tool. Respond politely in Korean. Refuse to answer non-order related queries.';
+    } else if (agentId === 'product') {
+      systemInstruction = 'You are the Product AI for an E-commerce Admin Dashboard. You specialize EXCLUSIVELY in reading, creating, updating, deleting, or seeding Products and Categories using the manageProducts tool. Respond politely in Korean. Refuse to answer non-product related queries.';
+    } else if (agentId === 'general') {
+      systemInstruction = 'You are the General Admin AI for an E-commerce Dashboard. You handle high-level site statistics, navigation, and Admin user management. Respond politely in Korean.';
+    }
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-flash-latest',
       tools: [{ functionDeclarations: tools }],
-      systemInstruction: 'You are an omnipotent AI assistant built into an E-commerce Admin Dashboard. You speak politely in Korean.\n\nIMPORTANT RULES:\n1. Order statuses are: PAID (결제완료), PREP_SHIPPING (배송준비중), PICKING (피킹중), SHIPPING (배송중), DELIVERED (배송완료), CANCELLED (취소), RETURNED (반품).\n2. If a user asks to cancel an order, check its status using manageOrders. Do not attempt to cancel if status is PICKING, SHIPPING, or DELIVERED. You can only update the status to CANCELLED if it is PAID or PREP_SHIPPING.\n3. You can set the product code (`productCode`) when creating a product.\n4. You have full access to manage Orders, Products, and Admins via the database. If asked to query or change something, use the manage* tools.\n5. After calling a tool, you must summarize the result naturally and concisely for the user.'
+      systemInstruction
     });
 
     const chat = model.startChat();
@@ -138,12 +148,12 @@ exports.chat = async (req, res) => {
         actionData = { type: 'NAVIGATE', payload: args.path };
         functionResponseData = { success: true, message: `Navigated to ${args.path}` };
       } else if (functionName === 'getDashboardSummary') {
-        const totalRevenueAggr = await prisma.order.aggregate({ _sum: { total: true }, where: { status: 'COMPLETED' } });
+        const totalRevenueAggr = await prisma.orders.aggregate({ _sum: { total_amount: true }, where: { status: 'COMPLETED' } });
         const summary = {
-          totalRevenue: totalRevenueAggr._sum.total || 0,
-          totalOrders: await prisma.order.count(),
+          totalRevenue: totalRevenueAggr._sum.total_amount || 0,
+          totalOrders: await prisma.orders.count(),
           totalProducts: await prisma.product.count(),
-          totalAdmins: await prisma.adminUser.count()
+          totalAdmins: await prisma.admin_users.count()
         };
         functionResponseData = { success: true, summary };
       } else if (functionName === 'manageOrders') {

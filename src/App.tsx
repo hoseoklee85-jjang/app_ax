@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import AdminManage from './pages/AdminManage';
 import OrderManage from './pages/OrderManage';
 import OrderDetail from './pages/OrderDetail';
+import StoreManage from './pages/StoreManage';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="products" element={<ProductManage />} />
+          <Route path="stores" element={<StoreManage />} />
           <Route path="admins" element={<AdminManage />} />
           <Route path="orders" element={<OrderManage />} />
           <Route path="orders/:id" element={<OrderDetail />} />

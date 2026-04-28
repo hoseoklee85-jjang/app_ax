@@ -18,120 +18,147 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="admin-container">
-      <header className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <h1>🌐 LG Global Admin</h1>
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <select 
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'var(--bg-panel)',
-              color: 'var(--text-main)',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
-            defaultValue={localStorage.getItem('storeId') || 'ALL'}
-            onChange={(e) => {
-              localStorage.setItem('storeId', e.target.value);
-              window.location.reload();
-            }}
-          >
-            <option value="ALL">🌎 All Regions</option>
-            <option value="KR">🇰🇷 South Korea (KRW)</option>
-            <option value="US">🇺🇸 United States (USD)</option>
-          </select>
-          <nav style={{ display: 'flex', gap: '1.5rem' }}>
-            <Link 
-              to="/" 
-              style={{ 
-                color: location.pathname === '/' ? 'var(--accent)' : 'var(--text-muted)',
-                textDecoration: 'none',
-                fontWeight: location.pathname === '/' ? 'bold' : 'normal',
-                transition: 'color 0.2s'
-              }}
-            >
-              Dashboard
-            </Link>
-            <Link 
-              to="/products" 
-              style={{ 
-                color: location.pathname === '/products' ? 'var(--accent)' : 'var(--text-muted)',
-                textDecoration: 'none',
-                fontWeight: location.pathname === '/products' ? 'bold' : 'normal',
-                transition: 'color 0.2s'
-              }}
-            >
-              Products
-            </Link>
-            <Link 
-              to="/orders" 
-              style={{ 
-                color: location.pathname === '/orders' ? 'var(--accent)' : 'var(--text-muted)',
-                textDecoration: 'none',
-                fontWeight: location.pathname === '/orders' ? 'bold' : 'normal',
-                transition: 'color 0.2s'
-              }}
-            >
-              Orders
-            </Link>
-            <Link 
-              to="/admins" 
-              style={{ 
-                color: location.pathname === '/admins' ? 'var(--accent)' : 'var(--text-muted)',
-                textDecoration: 'none',
-                fontWeight: location.pathname === '/admins' ? 'bold' : 'normal',
-                transition: 'color 0.2s'
-              }}
-            >
-              Admins
-            </Link>
-            <a 
-              href="http://localhost:3000/api-docs" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{ 
-                color: 'var(--text-muted)',
-                textDecoration: 'none',
-                transition: 'color 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.color = 'var(--accent)'}
-              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-            >
-              API Docs ↗
-            </a>
-          </nav>
-          <button 
-            onClick={handleLogout}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              color: 'var(--text-muted)',
-              padding: '0.4rem 0.8rem',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              fontWeight: 500
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef4444'; }}
-            onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-      <main className="admin-main">
-        <Outlet />
-      </main>
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg-main)' }}>
       
-      {/* 🚀 AI Agent Chat Widget 🚀 */}
-      <AgentChat />
+      {/* 20% AI Agent Panel (Left) */}
+      <div style={{ 
+        width: '20%', 
+        minWidth: '320px', 
+        flexShrink: 0, 
+        borderRight: '1px solid var(--border)', 
+        height: '100%',
+        boxShadow: '2px 0 10px rgba(0,0,0,0.05)',
+        zIndex: 10
+      }}>
+        <AgentChat />
+      </div>
+
+      {/* 80% Dashboard Panel (Right) */}
+      <div style={{ flex: 1, overflowY: 'auto' }} className="admin-container">
+        <header className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <h1>🌐 LG Global Admin</h1>
+          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+            <select 
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-panel)',
+                color: 'var(--text-main)',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+              defaultValue={localStorage.getItem('storeId') || 'ALL'}
+              onChange={(e) => {
+                localStorage.setItem('storeId', e.target.value);
+                window.location.reload();
+              }}
+            >
+              <option value="ALL">🌎 All Regions</option>
+              <option value="KR">🇰🇷 South Korea (KRW)</option>
+              <option value="US">🇺🇸 United States (USD)</option>
+            </select>
+            <nav style={{ display: 'flex', gap: '1.5rem' }}>
+              <Link 
+                to="/" 
+                style={{ 
+                  color: location.pathname === '/' ? 'var(--accent)' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname === '/' ? 'bold' : 'normal',
+                  transition: 'color 0.2s'
+                }}
+              >
+                Dashboard
+              </Link>
+              <Link 
+                to="/products" 
+                style={{ 
+                  color: location.pathname === '/products' ? 'var(--accent)' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname === '/products' ? 'bold' : 'normal',
+                  transition: 'color 0.2s'
+                }}
+              >
+                Products
+              </Link>
+              <Link 
+                to="/stores" 
+                style={{ 
+                  color: location.pathname === '/stores' ? 'var(--accent)' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname === '/stores' ? 'bold' : 'normal',
+                  transition: 'color 0.2s'
+                }}
+              >
+                Stores
+              </Link>
+              <Link 
+                to="/orders" 
+                style={{ 
+                  color: location.pathname === '/orders' ? 'var(--accent)' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname === '/orders' ? 'bold' : 'normal',
+                  transition: 'color 0.2s'
+                }}
+              >
+                Orders
+              </Link>
+              <Link 
+                to="/admins" 
+                style={{ 
+                  color: location.pathname === '/admins' ? 'var(--accent)' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname === '/admins' ? 'bold' : 'normal',
+                  transition: 'color 0.2s'
+                }}
+              >
+                Admins
+              </Link>
+              <a 
+                href="http://localhost:3000/api-docs" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ 
+                  color: 'var(--text-muted)',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.color = 'var(--accent)'}
+                onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+              >
+                API Docs ↗
+              </a>
+            </nav>
+            <button 
+              onClick={handleLogout}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                color: 'var(--text-muted)',
+                padding: '0.4rem 0.8rem',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontWeight: 500
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef4444'; }}
+              onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+            >
+              Logout
+            </button>
+          </div>
+        </header>
+        
+        <main className="admin-main">
+          <Outlet />
+        </main>
+      </div>
+
     </div>
   );
 }
