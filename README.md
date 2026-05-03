@@ -44,10 +44,45 @@
 * **선택 이유:** 프론트엔드와 동일한 언어(JavaScript)를 사용하여 개발 이질감을 없애고, 가장 직관적인 Express로 Restful API를 빠르게 구축합니다.
 
 ### 3. 데이터베이스 및 ORM (DB & ORM) - `server/prisma/ 폴더`
-* **데이터베이스:** `SQLite`
-  * 로컬 테스트 시 복잡한 DB 서버 설치 없이, 단일 파일(`dev.db`)로 데이터를 완벽히 관리합니다.
+* **데이터베이스:** `Neon PostgreSQL` (클라우드 환경 원격 DB)
+  * 로컬 환경에 무거운 DB를 설치할 필요 없이 클라우드 원격 DB를 연결하여 어디서든 일관된 개발 및 실서버 배포가 가능하도록 구성되어 있습니다.
+  * 기존 Java Spring Boot 백엔드와 **동일한 `public` 스키마 공간을 공유**하여, 운영 DB를 즉각적으로 조회하고 제어합니다.
 * **ORM:** `Prisma`
-  * 최신 SQL 빌더 도구로, 향후 클라우드 배포 시 코드 수정 없이 PostgreSQL이나 MySQL로 즉시 마이그레이션이 가능합니다.
+  * 최신 TypeScript 기반의 SQL 빌더 도구로, 직관적인 객체 지향 형태로 관계형 데이터베이스를 매우 쉽게 조작할 수 있습니다.
+
+---
+
+## 🚀 로컬 환경에서 원격 클라우드 DB 연동 방법
+
+본 프로젝트는 로컬 PC에서 개발 및 테스트를 진행할 때에도, 운영 서버와 동일한 **원격 PostgreSQL 클라우드 DB(Neon)** 에 연결하여 실시간 데이터를 사용합니다.
+
+### 1단계: DB 환경 변수 설정
+`server` 폴더 내에 `.env` 파일을 생성하거나 열어 다음과 같이 Neon DB 연결 문자열을 작성합니다.
+```env
+# server/.env 파일
+DATABASE_URL="postgresql://neondb_owner:k2iN3PscvKjD@ep-twilight-waterfall-a1z22iq2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+```
+> **주의**: 비밀번호 및 접속 정보가 유출되지 않도록 실제 운영 시에는 `.env` 파일을 절대 깃허브(Git)에 커밋하지 않아야 합니다!
+
+### 2단계: 최신 데이터베이스 스키마 동기화 (Prisma)
+DB 구조(테이블, 컬럼 등)가 변경되었거나, 최초로 다운로드를 받아 실행할 때, 내 로컬 코드가 원격 DB 구조를 정확히 인지하도록 `prisma db push` 명령어를 실행해야 합니다.
+
+```bash
+cd server
+npx prisma generate  # Prisma Client(자바스크립트용 DB 연결 객체) 최신화
+npx prisma db push   # 작성된 schema.prisma 구조를 원격 DB와 동기화
+```
+
+### 3단계: 외부 툴(DBeaver, pgAdmin 등)로 직접 접속하기
+로컬 터미널이나 서버 코드 외에, 시각적인 DB 관리 도구를 통해 원격 DB에 붙어 직접 SQL을 실행하거나 데이터를 볼 수 있습니다.
+
+**[접속 정보 가이드]**
+* **Host (호스트 주소):** `ep-twilight-waterfall-a1z22iq2.ap-southeast-1.aws.neon.tech`
+* **Port (포트):** `5432`
+* **Database (데이터베이스명):** `neondb`
+* **Username (사용자명):** `neondb_owner`
+* **Password (비밀번호):** `k2iN3PscvKjD` 
+* **SSL (보안 옵션):** `Require (필수)`로 체크
 
 ---
 
@@ -81,7 +116,7 @@ npm run dev
 * 🔗 **주소:** `http://localhost:3000/api-docs`
 
 ### 2. 데이터베이스 관리 도구 (Prisma Studio)
-DB에 저장된 실제 데이터를 엑셀처럼 시각적으로 보고 직접 수정하고 싶을 때 사용합니다.
+DB에 저장된 실제 데이터를 엑셀처럼 시각적으로 보고 직접 수정하고 싶을 때 사용합니다. 원격 DB의 내용도 즉시 반영됩니다.
 ```bash
 cd server
 npx prisma studio

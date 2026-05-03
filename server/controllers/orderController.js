@@ -6,7 +6,7 @@ exports.getOrders = async (req, res) => {
     const { status, search, startDate, endDate, page = 1, limit = 10, storeId } = req.query;
     
     const filter = {};
-    if (storeId && storeId !== 'ALL') filter.storeId = storeId;
+    if (storeId && storeId !== 'ALL') filter.storeId = { contains: storeId };
     if (status) {
       if (status === 'IN_TRANSIT') {
         filter.status = { in: ['PREP_SHIPPING', 'PICKING', 'SHIPPING'] };
@@ -16,7 +16,8 @@ exports.getOrders = async (req, res) => {
     }
     if (search) {
       filter.OR = [
-        { customer: { contains: search } },
+        { member: { firstName: { contains: search } } },
+        { member: { lastName: { contains: search } } },
         { orderNumber: { contains: search } }
       ];
     }
@@ -33,16 +34,39 @@ exports.getOrders = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    const [orders, totalCount] = await Promise.all([
-      prisma.order.findMany({
-        where: filter,
-        orderBy: { createdAt: 'desc' },
-        include: { items: true },
-        skip,
-        take
-      }),
+    const ordersRaw = await prisma.order.findMany({
+      where: filter,
+      orderBy: { createdAt: 'desc' },
+      include: { items: true, member: true },
+      skip,
+      take
+    });
+    
+    const [ordersQuery, totalCount] = await Promise.all([
+      ordersRaw,
       prisma.order.count({ where: filter })
     ]);
+
+    const orders = ordersRaw.map(o => {
+      const { member, ...rest } = o;
+      return {
+        ...rest,
+        id: rest.id.toString(),
+        memberId: rest.memberId ? rest.memberId.toString() : null,
+        customer: member ? `${member.firstName} ${member.lastName}` : 'Unknown Customer',
+        customerEmail: member ? member.email : null,
+        customerPhone: member ? member.phoneNumber : null,
+        paymentMethod: 'Credit Card',
+        total: Number(rest.total || 0),
+      items: o.items.map(i => ({
+        ...i,
+        id: i.id.toString(),
+        orderId: i.orderId.toString(),
+        productId: i.productId ? i.productId.toString() : null,
+        price: Number(i.price || 0)
+      }))
+      };
+    });
 
     res.json({
       data: orders,
@@ -62,12 +86,41 @@ exports.getOrders = async (req, res) => {
 exports.getOrderById = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await prisma.order.findUnique({
+    const orderRaw = await prisma.order.findUnique({
       where: { id: parseInt(id) },
-      include: { items: true, statusHistory: { orderBy: { createdAt: 'desc' } } }
+      include: { items: true, member: true, addresses: true, statusHistory: { orderBy: { createdAt: 'desc' } } }
     });
     
-    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (!orderRaw) return res.status(404).json({ error: 'Order not found' });
+    
+    const { member, items, addresses, statusHistory, ...rest } = orderRaw;
+    
+    const order = {
+      ...rest,
+      id: rest.id.toString(),
+      memberId: rest.memberId ? rest.memberId.toString() : null,
+      customer: member ? `${member.firstName} ${member.lastName}` : 'Unknown Customer',
+      customerEmail: member ? member.email : null,
+      customerPhone: member ? member.phoneNumber : null,
+      shippingAddress: addresses && addresses.length > 0 ? 
+        addresses.find(a => a.addressType === 'SHIPPING')?.addressLine1 || addresses[0].addressLine1 
+        : null,
+      paymentMethod: 'Credit Card',
+      total: Number(rest.total || 0),
+      items: items.map(i => ({
+        ...i,
+        id: i.id.toString(),
+        orderId: i.orderId.toString(),
+        productId: i.productId ? i.productId.toString() : null,
+        price: Number(i.price || 0)
+      })),
+      statusHistory: statusHistory.map(h => ({
+        ...h,
+        id: h.id.toString(),
+        orderId: h.orderId.toString()
+      }))
+    };
+
     res.json(order);
   } catch (error) {
     console.error(error);
@@ -111,11 +164,11 @@ exports.createOrder = async (req, res) => {
     const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
     const orderNumber = `ORD-${dateStr}-${randomChars}`;
 
-    const newOrder = await prisma.$transaction(async (tx) => {
+    const newOrderRaw = await prisma.$transaction(async (tx) => {
       for (const item of items) {
         await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } }
+          where: { id: parseInt(item.productId) },
+          data: { stock: { decrement: parseInt(item.quantity) } }
         });
       }
 
@@ -141,6 +194,20 @@ exports.createOrder = async (req, res) => {
         include: { items: true }
       });
     });
+
+    const newOrder = {
+      ...newOrderRaw,
+      id: newOrderRaw.id.toString(),
+      customerId: newOrderRaw.customerId ? newOrderRaw.customerId.toString() : null,
+      total: Number(newOrderRaw.total || 0),
+      items: newOrderRaw.items.map(i => ({
+        ...i,
+        id: i.id.toString(),
+        orderId: i.orderId.toString(),
+        productId: i.productId ? i.productId.toString() : null,
+        price: Number(i.price || 0)
+      }))
+    };
 
     res.status(201).json(newOrder);
   } catch (error) {
@@ -168,12 +235,12 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(400).json({ error: '반품은 배송완료(DELIVERED) 상태에서만 가능합니다.' });
     }
     
-    let updatedOrder;
+    let updatedOrderRaw;
 
     // 만약 취소(CANCELLED) 또는 반품(RETURNED)으로 상태가 변경되는 경우 재고 복구
     if ((status === 'CANCELLED' || status === 'RETURNED') && 
         (order.status !== 'CANCELLED' && order.status !== 'RETURNED')) {
-      updatedOrder = await prisma.$transaction(async (tx) => {
+      updatedOrderRaw = await prisma.$transaction(async (tx) => {
         // 재고 원복
         for (const item of order.items) {
           if (item.productId) {
@@ -195,7 +262,7 @@ exports.updateOrderStatus = async (req, res) => {
         });
       });
     } else {
-      updatedOrder = await prisma.order.update({
+      updatedOrderRaw = await prisma.order.update({
         where: { id: parseInt(id) },
         data: { 
           status,
@@ -205,6 +272,13 @@ exports.updateOrderStatus = async (req, res) => {
         }
       });
     }
+
+    const updatedOrder = {
+      ...updatedOrderRaw,
+      id: updatedOrderRaw.id.toString(),
+      customerId: updatedOrderRaw.customerId ? updatedOrderRaw.customerId.toString() : null,
+      total: Number(updatedOrderRaw.total || 0)
+    };
 
     res.json(updatedOrder);
   } catch (error) {

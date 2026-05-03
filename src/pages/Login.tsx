@@ -24,6 +24,19 @@ export default function Login() {
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('adminToken', data.token);
+        localStorage.setItem('adminRole', data.role);
+        
+        // If the user has a specific store bound to them, lock them into it.
+        // Super admins or global admins might not have a specific storeId bound.
+        if (data.storeId) {
+          localStorage.setItem('storeId', data.storeId);
+        } else if (data.role === 'SUPER_ADMIN') {
+          // Keep whatever they chose before or set to ALL
+          if (!localStorage.getItem('storeId')) {
+             localStorage.setItem('storeId', 'ALL');
+          }
+        }
+        
         navigate('/'); // 로그인 성공 시 대시보드로 이동
       } else {
         const errorData = await res.json();

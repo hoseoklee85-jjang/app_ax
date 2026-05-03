@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface Product {
   id: number;
@@ -11,25 +12,41 @@ interface Product {
 }
 
 export default function ProductManage() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [langTab, setLangTab] = useState('en');
-  const [form, setForm] = useState({ 
-    productCode: '',
-    price: '', 
-    stock: '',
-    translations: {
-      en: { name: '', description: '' },
-      ko: { name: '', description: '' }
-    }
-  });
+  
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [inStockFilter, setInStockFilter] = useState('ALL');
+  const [isDiscountedFilter, setIsDiscountedFilter] = useState('ALL');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
   const fetchProducts = async () => {
     try {
+      setLoading(true);
       const storeId = localStorage.getItem('storeId') || 'ALL';
-      const res = await fetch(`/api/products?storeId=${storeId}`);
-      const data = await res.json();
-      setProducts(data);
+      let url = `/api/products?storeId=${storeId}&page=${page}&limit=10`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (statusFilter !== 'ALL') url += `&status=${statusFilter}`;
+      if (inStockFilter !== 'ALL') url += `&inStock=${inStockFilter}`;
+      if (isDiscountedFilter !== 'ALL') url += `&isDiscounted=${isDiscountedFilter}`;
+      if (minPrice) url += `&minPrice=${minPrice}`;
+      if (maxPrice) url += `&maxPrice=${maxPrice}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      setProducts(json.data || []);
+      if (json.pagination) {
+        setTotalPages(json.pagination.totalPages);
+        setTotalCount(json.pagination.total);
+      }
     } catch (err) {
       console.error('Failed to fetch products', err);
     } finally {
@@ -38,82 +55,69 @@ export default function ProductManage() {
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    setPage(1); // Reset page on filter change
+  }, [search, statusFilter, inStockFilter, isDiscountedFilter, minPrice, maxPrice]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.translations.en.name || !form.price) return alert('English name and price are required.');
-    
-    try {
-      const storeId = localStorage.getItem('storeId') || 'US';
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productCode: form.productCode ? form.productCode : undefined,
-          name: form.translations.en.name,
-          price: parseInt(form.price),
-          description: form.translations.en.description,
-          stock: parseInt(form.stock) || 0,
-          storeId: storeId === 'ALL' ? 'US' : storeId,
-          translations: [
-            { language: 'en', name: form.translations.en.name, description: form.translations.en.description },
-            { language: 'ko', name: form.translations.ko.name, description: form.translations.ko.description }
-          ]
-        })
-      });
-      if (res.ok) {
-        setForm({ 
-          productCode: '', price: '', stock: '', 
-          translations: { en: { name: '', description: '' }, ko: { name: '', description: '' } } 
-        });
-        fetchProducts(); // Refresh list
-      }
-    } catch (err) {
-      console.error('Failed to create product', err);
-    }
-  };
+  useEffect(() => {
+    fetchProducts();
+  }, [page, search, statusFilter, inStockFilter, isDiscountedFilter, minPrice, maxPrice]);
 
   return (
     <>
-      <section className="admin-panel add-product-panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h2 style={{ margin: 0 }}>Add New Product</h2>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button type="button" onClick={() => setLangTab('en')} style={{ padding: '0.4rem 1rem', borderRadius: '4px', border: '1px solid var(--border)', background: langTab === 'en' ? 'var(--accent)' : 'var(--bg-panel)', color: langTab === 'en' ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 'bold' }}>English</button>
-            <button type="button" onClick={() => setLangTab('ko')} style={{ padding: '0.4rem 1rem', borderRadius: '4px', border: '1px solid var(--border)', background: langTab === 'ko' ? 'var(--accent)' : 'var(--bg-panel)', color: langTab === 'ko' ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 'bold' }}>Korean</button>
+      <section className="admin-panel" style={{ marginBottom: '1.5rem' }}>
+        <h2 style={{ margin: 0, marginBottom: '1rem' }}>Product Search</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+          <input 
+            type="text" 
+            placeholder="Search by product name or code (SKU)..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ padding: '0.8rem 1.2rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-panel)', color: 'var(--text-main)', width: '100%', fontSize: '1rem', boxSizing: 'border-box' }}
+          />
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Status</label>
+              <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-panel)', color: 'var(--text-main)' }}>
+                <option value="ALL">All Status</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+              </select>
+            </div>
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Stock</label>
+              <select value={inStockFilter} onChange={e => setInStockFilter(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-panel)', color: 'var(--text-main)' }}>
+                <option value="ALL">All Stock</option>
+                <option value="true">In Stock</option>
+                <option value="false">Out of Stock</option>
+              </select>
+            </div>
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Discounted</label>
+              <select value={isDiscountedFilter} onChange={e => setIsDiscountedFilter(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-panel)', color: 'var(--text-main)' }}>
+                <option value="ALL">All Products</option>
+                <option value="true">Discounted Only</option>
+                <option value="false">No Discount</option>
+              </select>
+            </div>
+            <div style={{ flex: 1, minWidth: '200px', display: 'flex', gap: '0.5rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Min Price ($)</label>
+                <input type="number" value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="0" style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-panel)', color: 'var(--text-main)' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: '0.3rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Max Price ($)</label>
+                <input type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="Max" style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-panel)', color: 'var(--text-main)' }} />
+              </div>
+            </div>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="product-form">
-          <div className="form-group">
-            <label>Product Code (Optional)</label>
-            <input type="text" value={form.productCode} onChange={e => setForm({...form, productCode: e.target.value})} placeholder="e.g. PRD-A001" />
-          </div>
-          <div className="form-group">
-            <label>Product Name ({langTab.toUpperCase()})</label>
-            <input type="text" value={form.translations[langTab as 'en'|'ko'].name} onChange={e => setForm({...form, translations: {...form.translations, [langTab]: {...form.translations[langTab as 'en'|'ko'], name: e.target.value}}})} placeholder="e.g. Wireless Mouse" />
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Price ($)</label>
-              <input type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} placeholder="29" />
-            </div>
-            <div className="form-group">
-              <label>Stock</label>
-              <input type="number" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} placeholder="100" />
-            </div>
-          </div>
-          <div className="form-group">
-            <label>Description ({langTab.toUpperCase()})</label>
-            <textarea value={form.translations[langTab as 'en'|'ko'].description} onChange={e => setForm({...form, translations: {...form.translations, [langTab]: {...form.translations[langTab as 'en'|'ko'], description: e.target.value}}})} placeholder="Product description..."></textarea>
-          </div>
-          <button type="submit" className="btn-primary">Save Product</button>
-        </form>
       </section>
 
       <section className="admin-panel product-list-panel">
-        <h2>Product Inventory</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ margin: 0 }}>Product Inventory</h2>
+          <span style={{ color: 'var(--text-muted)' }}>Total: {totalCount} products</span>
+        </div>
         {loading ? (
           <p>Loading products from database...</p>
         ) : (
@@ -136,7 +140,7 @@ export default function ProductManage() {
                   </tr>
                 ) : (
                   products.map(p => (
-                    <tr key={p.id}>
+                    <tr key={p.id} onClick={() => navigate(`/products/${p.id}`)} style={{ cursor: 'pointer' }} className="hover-row">
                       <td>#{p.id}</td>
                       <td style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{p.productCode || '-'}</td>
                       <td className="fw-bold">{p.name}</td>
@@ -152,6 +156,43 @@ export default function ProductManage() {
                 )}
               </tbody>
             </table>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1.5rem' }}>
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border)',
+                    background: page === 1 ? 'var(--bg-card)' : 'var(--bg-panel)',
+                    color: page === 1 ? 'var(--text-muted)' : 'var(--text-main)',
+                    cursor: page === 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Previous
+                </button>
+                <span style={{ display: 'flex', alignItems: 'center', padding: '0 0.5rem' }}>
+                  Page {page} of {totalPages}
+                </span>
+                <button 
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border)',
+                    background: page === totalPages ? 'var(--bg-card)' : 'var(--bg-panel)',
+                    color: page === totalPages ? 'var(--text-muted)' : 'var(--text-main)',
+                    cursor: page === totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>

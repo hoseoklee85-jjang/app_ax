@@ -1,11 +1,29 @@
 import { Link, Outlet, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import AiAgentSidebar from '../components/AiAgentSidebar';
 import '../App.css'; // Global styles
 import '../ai-agent.css'; // AI Agent specific styles
 
+interface Store {
+  id: string;
+  name: string;
+  currency: string;
+}
+
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [stores, setStores] = useState<Store[]>([]);
+
+  useEffect(() => {
+    // Fetch stores for the region selector
+    fetch('/api/stores?limit=100')
+      .then(res => res.json())
+      .then(json => {
+        if (json.data) setStores(json.data);
+      })
+      .catch(console.error);
+  }, []);
 
   // 토큰이 없으면 로그인 페이지로 강제 이동 (보안 라우팅)
   const token = localStorage.getItem('adminToken');
@@ -15,6 +33,7 @@ export default function AdminLayout() {
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminRole');
     navigate('/login');
   };
 
@@ -30,24 +49,28 @@ export default function AdminLayout() {
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
             <select 
+              disabled={localStorage.getItem('adminRole') !== 'SUPER_ADMIN'}
               style={{
                 padding: '0.5rem 1rem',
                 borderRadius: '8px',
                 border: '1px solid var(--border)',
-                background: 'var(--bg-panel)',
+                background: localStorage.getItem('adminRole') !== 'SUPER_ADMIN' ? '#f1f5f9' : 'var(--bg-panel)',
                 color: 'var(--text-main)',
                 fontWeight: 'bold',
-                cursor: 'pointer'
+                cursor: localStorage.getItem('adminRole') !== 'SUPER_ADMIN' ? 'not-allowed' : 'pointer'
               }}
-              defaultValue={localStorage.getItem('storeId') || 'ALL'}
+              value={localStorage.getItem('storeId') || 'ALL'}
               onChange={(e) => {
                 localStorage.setItem('storeId', e.target.value);
                 window.location.reload();
               }}
             >
               <option value="ALL">🌎 All Regions</option>
-              <option value="KR">🇰🇷 South Korea (KRW)</option>
-              <option value="US">🇺🇸 United States (USD)</option>
+              {stores.map(store => (
+                <option key={store.id} value={store.id}>
+                  📍 {store.name} ({store.currency})
+                </option>
+              ))}
             </select>
             <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
               <Link 
@@ -62,7 +85,29 @@ export default function AdminLayout() {
                 Dashboard
               </Link>
               <Link 
-                to="/products" 
+                to="/stores" 
+                style={{ 
+                  color: location.pathname === '/stores' ? 'var(--accent)' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname === '/stores' ? 'bold' : 'normal',
+                  transition: 'color 0.2s'
+                }}
+              >
+                Stores
+              </Link>
+              <Link 
+                to="/members" 
+                style={{ 
+                  color: location.pathname === '/members' ? 'var(--accent)' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname === '/members' ? 'bold' : 'normal',
+                  transition: 'color 0.2s'
+                }}
+              >
+                Customers
+              </Link>
+              <Link 
+                to="/products"  
                 style={{ 
                   color: location.pathname === '/products' ? 'var(--accent)' : 'var(--text-muted)',
                   textDecoration: 'none',

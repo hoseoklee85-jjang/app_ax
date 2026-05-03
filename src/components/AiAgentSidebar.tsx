@@ -283,13 +283,18 @@ export default function AiAgentSidebar() {
     }
 
     try {
-      const response = await fetch('/api/v1/ai/chat', { 
+      const response = await fetch('/api/agent/chat', { 
          method: 'POST', 
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ message: text, agent: activeAgent.id, activePromotions }) 
       });
       const data = await response.json();
       setIsTyping(false);
+      
+      if (!response.ok) {
+        setMessages(prev => [...prev, { role: 'agent', type: 'text', content: `⚠️ ${data.error || '알 수 없는 서버 오류'}` }]);
+        return;
+      }
       
       // Auto-handler for STOP promotion action coming from AI
       if (data && data.type === 'action' && data.actionDetails?.type === 'STOP_PROMOTION') {
@@ -306,7 +311,14 @@ export default function AiAgentSidebar() {
         }
       }
 
-      if (data) setMessages(prev => [...prev, data]);
+      if (data) {
+        setMessages(prev => [...prev, {
+          role: 'agent',
+          type: data.type === 'action' ? 'action' : 'text',
+          content: data.text,
+          actionDetails: data.action
+        }]);
+      }
     } catch (err) {
       console.error("AI Fetch Error:", err);
       setIsTyping(false);

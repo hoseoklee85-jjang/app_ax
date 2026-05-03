@@ -3,8 +3,8 @@ const { PrismaClient } = require('@prisma/client');
 require('dotenv').config();
 
 const prisma = new PrismaClient();
-// Fallback if env variable isn't loaded correctly in some environments
-const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyC8iQi7pnAjs2LXrQl7F6eHowVHF3rMCKI';
+// Removed leaked fallback key
+const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 const tools = [
@@ -31,7 +31,7 @@ const tools = [
       type: 'object',
       properties: {
         action: { type: 'string', description: "One of: 'READ', 'UPDATE', 'DELETE', 'SEED'" },
-        filters: { type: 'object', description: 'Filters for READ. e.g., { status: "COMPLETED" }' },
+        filters: { type: 'object', description: 'Filters for READ. e.g., { status: "COMPLETED" } or for customer email: { member: { email: { contains: "keyword" } } }' },
         id: { type: 'integer', description: 'ID of the order to update/delete' },
         data: { type: 'object', description: 'Data to update. For status use "PAID", "PREP_SHIPPING", "PICKING", "SHIPPING", "DELIVERED", "CANCELLED", "RETURNED".' }
       },
@@ -74,7 +74,7 @@ async function executeManageEntity(modelName, args) {
   
   try {
     if (action === 'READ') {
-      const includeOpts = modelName === 'order' ? { items: true } : undefined;
+      const includeOpts = modelName === 'order' ? { items: true, member: true } : undefined;
       const records = await db.findMany({ where: filters || {}, take: 20, orderBy: { id: 'desc' }, include: includeOpts });
       return { success: true, records };
     } else if (action === 'CREATE') {
@@ -115,7 +115,7 @@ exports.chat = async (req, res) => {
     if (!message) return res.status(400).json({ error: 'Message is required' });
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-flash-latest',
+      model: 'gemini-2.5-flash-lite',
       tools: [{ functionDeclarations: tools }],
       systemInstruction: 'You are an omnipotent AI assistant built into an E-commerce Admin Dashboard. You speak politely in Korean.\n\nIMPORTANT RULES:\n1. Order statuses are: PAID (결제완료), PREP_SHIPPING (배송준비중), PICKING (피킹중), SHIPPING (배송중), DELIVERED (배송완료), CANCELLED (취소), RETURNED (반품).\n2. If a user asks to cancel an order, check its status using manageOrders. Do not attempt to cancel if status is PICKING, SHIPPING, or DELIVERED. You can only update the status to CANCELLED if it is PAID or PREP_SHIPPING.\n3. You can set the product code (`productCode`) when creating a product.\n4. You have full access to manage Orders, Products, and Admins via the database. If asked to query or change something, use the manage* tools.\n5. After calling a tool, you must summarize the result naturally and concisely for the user.'
     });
@@ -157,10 +157,17 @@ exports.chat = async (req, res) => {
         if (functionResponseData.requiresRefresh) actionData = { type: 'REFRESH_DATA' };
       }
 
+      // Helper to serialize BigInts
+      const serializeBigInt = (obj) => {
+        return JSON.parse(JSON.stringify(obj, (key, value) =>
+          typeof value === 'bigint' ? value.toString() : value
+        ));
+      };
+
       result = await chat.sendMessage([{
         functionResponse: {
           name: functionName,
-          response: functionResponseData
+          response: serializeBigInt(functionResponseData)
         }
       }]);
       response = result.response;

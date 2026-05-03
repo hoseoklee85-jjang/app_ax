@@ -9,7 +9,12 @@ exports.login = async (req, res) => {
     });
 
     if (adminUser && adminUser.password === password) {
-      res.json({ success: true, token: `fake-jwt-token-for-${adminUser.id}` });
+      res.json({ 
+        success: true, 
+        token: `fake-jwt-token-for-${adminUser.id}`,
+        role: adminUser.role,
+        storeId: adminUser.storeId
+      });
     } else {
       res.status(401).json({ error: 'Invalid username or password' });
     }

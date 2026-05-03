@@ -9,6 +9,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const agentRoutes = require('./routes/agentRoutes');
+const memberRoutes = require('./routes/memberRoutes');
+const storeRoutes = require('./routes/storeRoutes');
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./swagger');
@@ -25,6 +27,8 @@ app.use('/api/admins', adminRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/agent', agentRoutes);
+app.use('/api/members', memberRoutes);
+app.use('/api/stores', storeRoutes); // 🌟 신규 스토어 관리 API 등록
 
 // Swagger UI Route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
