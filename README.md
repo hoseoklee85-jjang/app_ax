@@ -80,8 +80,8 @@ npx prisma db push   # 작성된 schema.prisma 구조를 원격 DB와 동기화
 * **Host (호스트 주소):** `ep-twilight-waterfall-a1z22iq2.ap-southeast-1.aws.neon.tech`
 * **Port (포트):** `5432`
 * **Database (데이터베이스명):** `neondb`
-* **Username (사용자명):** `neondb_owner`
-* **Password (비밀번호):** `k2iN3PscvKjD` 
+* **Username (사용자명):** `********`
+* **Password (비밀번호):** `*******` 
 * **SSL (보안 옵션):** `Require (필수)`로 체크
 
 ---
