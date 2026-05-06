@@ -118,6 +118,17 @@ export default function AdminLayout() {
                 Products
               </Link>
               <Link 
+                to="/promotions" 
+                style={{ 
+                  color: location.pathname.startsWith('/promotions') ? 'var(--accent)' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname.startsWith('/promotions') ? 'bold' : 'normal',
+                  transition: 'color 0.2s'
+                }}
+              >
+                Promotions
+              </Link>
+              <Link 
                 to="/orders" 
                 style={{ 
                   color: location.pathname === '/orders' ? 'var(--accent)' : 'var(--text-muted)',

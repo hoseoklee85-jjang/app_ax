@@ -97,7 +97,7 @@ label {
   color: var(--text-muted);
 }
 
-input, textarea {
+input, textarea, select {
   width: 100%;
   padding: 0.75rem;
   background: var(--bg-panel);
@@ -107,9 +107,18 @@ input, textarea {
   font-family: inherit;
   box-sizing: border-box;
   transition: all 0.2s ease;
+  appearance: none; /* remove default arrow */
 }
 
-input:focus, textarea:focus {
+/* Optional: Add a custom arrow for select */
+select {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+}
+
+input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);

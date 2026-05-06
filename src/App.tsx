@@ -12,6 +12,7 @@ import StoreManage from './pages/StoreManage';
 import OrderManage from './pages/OrderManage';
 import OrderDetail from './pages/OrderDetail';
 import StorePreview from './pages/StorePreview';
+import PromotionManage from './pages/PromotionManage';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="members/:id" element={<MemberDetail />} />
           <Route path="products" element={<ProductManage />} />
           <Route path="products/:id" element={<ProductDetail />} />
+          <Route path="promotions" element={<PromotionManage />} />
           <Route path="admins" element={<AdminManage />} />
           <Route path="orders" element={<OrderManage />} />
           <Route path="orders/:id" element={<OrderDetail />} />
