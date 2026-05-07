@@ -73,7 +73,7 @@ exports.getDashboardData = async (req, res) => {
     const lowStockProducts = lowStockProductsRaw.map(p => ({
       ...p,
       id: p.id.toString(),
-      categoryId: p.categoryId.toString(),
+      categoryId: p.categoryId ? p.categoryId.toString() : null,
       price: Number(p.price || 0),
       originalPrice: p.originalPrice ? Number(p.originalPrice) : null
     }));

@@ -11,7 +11,6 @@ exports.getStores = async (req, res) => {
 
     const [stores, totalCount] = await Promise.all([
       prisma.store.findMany({
-        orderBy: { createdAt: 'desc' },
         skip,
         take
       }),
