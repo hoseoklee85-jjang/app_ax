@@ -314,7 +314,8 @@ export default function AiAgentSidebar() {
       if (data) {
         setMessages(prev => [...prev, {
           role: 'agent',
-          type: data.type === 'action' ? 'action' : 'text',
+          type: data.type || 'text',
+          formType: data.formType,
           content: data.text,
           actionDetails: data.action
         }]);

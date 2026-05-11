@@ -114,6 +114,32 @@ exports.chat = async (req, res) => {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'Message is required' });
 
+    // --- Hardcoded Scenarios ---
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('proactive targeted discount coupon')) {
+      return res.json({
+        type: 'action',
+        text: 'Should we issue a proactive targeted discount coupon to turn these hesitant visitors into buyers?',
+        action: { type: 'PROACTIVE_TV_COUPON' }
+      });
+    }
+    if (lowerMessage.includes('pto') || lowerMessage.includes('pick two options')) {
+      return res.json({
+        type: 'form',
+        formType: 'pto_flow',
+        text: 'Sure, I can help you set up a PTO (Pick Two Options) bundle. Please configure the details below.'
+      });
+    }
+    if (lowerMessage.includes('coupon') || lowerMessage.includes('쿠폰')) {
+      return res.json({
+        type: 'form',
+        formType: 'promotion',
+        text: 'Let\'s create a new promotion. Please specify the target and discount values below.'
+      });
+    }
+    // ---------------------------
+
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash-lite',
       tools: [{ functionDeclarations: tools }],
