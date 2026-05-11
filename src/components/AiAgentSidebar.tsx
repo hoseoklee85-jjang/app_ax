@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Agent Data
 const agents = [
@@ -183,6 +184,8 @@ export default function AiAgentSidebar() {
   const [view, setView] = useState<'dashboard' | 'chat'>('dashboard');
   const [activeAgent, setActiveAgent] = useState<any>(null);
   const [activePromotions, setActivePromotions] = useState<any[]>([]);
+  const navigate = useNavigate();
+  
   
   // Drag State for Floating Button
   const [btnPos, setBtnPos] = useState({ x: 16, y: 16 });
@@ -357,7 +360,16 @@ export default function AiAgentSidebar() {
   };
 
   const handleApproveAction = (details: any) => {
-    const newPromo = { id: Math.random().toString(36).substring(2, 9).toUpperCase(), ...details };
+    const newPromo = { 
+       id: Math.random().toString(36).substring(2, 9).toUpperCase(), 
+       ...details,
+       name: details.name || "AI Generated Coupon",
+       targetScope: details.target,
+       discountValue: details.rate,
+       targetSku: details.sku,
+       startDate: details.startDate ? (details.startDate.includes('T') ? details.startDate : `${details.startDate}T00:00:00`) : null,
+       endDate: details.endDate ? (details.endDate.includes('T') ? details.endDate : `${details.endDate}T23:59:59`) : null
+    };
     setActivePromotions(prev => [...prev, newPromo]);
 
     // Calculate simulated affected count based on target scope
@@ -627,7 +639,7 @@ export default function AiAgentSidebar() {
                       <button 
                         className="btn" 
                         style={{ width: '100%', background: '#0284c7', color: 'white', padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                        onClick={() => { window.location.href = '/preview'; }}
+                        onClick={() => { navigate('/preview'); }}
                       >
                         <span style={{ fontSize: '1.2rem' }}>👀</span> Open Live Preview
                       </button>
