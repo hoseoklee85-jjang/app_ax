@@ -353,7 +353,7 @@ export default function AiAgentSidebar() {
       setMessages(prev => [...prev, {
         role: 'agent',
         type: 'action',
-        content: "I've drafted the promotion settings based on the form. Please review and approve.",
+        content: "I've drafted the promotion settings based on the form. Would you like to preview this live before deploying?",
         actionDetails: { type: 'PROMOTION', ...promoDetails }
       }]);
     }, 1500);
@@ -380,15 +380,11 @@ export default function AiAgentSidebar() {
     else if (details.target === 'All Refrigerator') affectedCount = 45;
     else if (details.target === 'Specific SKU') affectedCount = 1;
 
-    setMessages(prev => [...prev, {
-      role: 'agent',
-      type: 'action',
-      actionDetails: { type: 'PROMOTION_SUCCESS', promotionId: newPromo.id, affectedCount, target: details.target, sku: details.sku }
-    }, {
-      role: 'agent',
-      type: 'action',
-      actionDetails: { type: 'ASK_PREVIEW' }
-    }]);
+      setMessages(prev => [...prev, {
+        role: 'agent',
+        type: 'action',
+        actionDetails: { type: 'PROMOTION_SUCCESS', promotionId: newPromo.id, affectedCount, target: details.target, sku: details.sku }
+      }]);
 
     // ✨ GLOBAL EVENT DISPATCH ✨
     dispatchAiAction({ type: 'PROMOTION', promotion: newPromo });
@@ -679,7 +675,105 @@ export default function AiAgentSidebar() {
                         <button className="action-btn reject" onClick={() => {
                           setMessages(prev => [...prev, { role: 'agent', type: 'text', content: 'Action cancelled. Let me know if you need anything else.'}]);
                         }}>Reject</button>
-                        <button className="action-btn approve" onClick={() => handleApproveAction(msg.actionDetails)}>Approve & Deploy</button>
+                        <button className="action-btn secondary" style={{ background: '#475569', color: 'white', border: 'none' }} onClick={async () => {
+                          navigate('/preview');
+                          setTimeout(() => {
+                            const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
+                            if (iframe && iframe.contentWindow) {
+                              iframe.contentWindow.postMessage({
+                                type: 'ai-action-apply',
+                                detail: {
+                                  type: 'PROMOTION',
+                                  promotion: {
+                                    id: 'PREVIEW-DRAFT',
+                                    name: "AI Preview Coupon",
+                                    type: 'COUPON',
+                                    targetScope: msg.actionDetails.target,
+                                    discountValue: msg.actionDetails.rate,
+                                    discountType: msg.actionDetails.discountType || 'PERCENT',
+                                    targetSku: msg.actionDetails.sku || null
+                                  }
+                                }
+                              }, '*');
+                            }
+                          }, 500);
+
+                          let categoryId = '';
+                          try {
+                            const catRes = await fetch('http://localhost:8080/api/v1/catalog/categories/tree');
+                            if (catRes.ok) {
+                              const catTree = await catRes.json();
+                              const categories: any[] = [];
+                              const flatten = (nodes: any[]) => {
+                                nodes.forEach(node => {
+                                  categories.push(node);
+                                  if (node.children) flatten(node.children);
+                                });
+                              };
+                              flatten(catTree);
+                              
+                              const targetName = msg.actionDetails.target.replace(/^All\s+/i, '').toLowerCase();
+                              if (targetName !== 'products') {
+                                const matched = categories.find(c => c.name.toLowerCase().includes(targetName) || targetName.includes(c.name.toLowerCase()));
+                                if (matched) categoryId = matched.categoryId;
+                              }
+                            }
+                          } catch (err) {
+                            console.error('Failed to fetch categories:', err);
+                          }
+
+                          // Fallback to hardcoded only if fetching completely fails and it's not 'All Products'
+                          if (!categoryId && msg.actionDetails.target !== 'All Products') {
+                            if (msg.actionDetails.target === 'All TV') categoryId = '112';
+                            else if (msg.actionDetails.target === 'All Soundbar') categoryId = '110';
+                            else if (msg.actionDetails.target === 'All Refrigerator') categoryId = '76';
+                          }
+
+                          let affectedCount = 1;
+                          if (msg.actionDetails.target === 'Specific SKU') {
+                            affectedCount = 1;
+                          } else {
+                            try {
+                              const url = categoryId 
+                                ? `http://localhost:8080/api/v1/catalog/products?categoryId=${categoryId}&size=1`
+                                : `http://localhost:8080/api/v1/catalog/products?size=1`;
+                              const res = await fetch(url);
+                              if (res.ok) {
+                                const data = await res.json();
+                                affectedCount = data.totalElements || 1;
+                              }
+                            } catch (err) {
+                              console.error('Failed to fetch count from DB:', err);
+                              // Fallback
+                              if (msg.actionDetails.target === 'All Products') affectedCount = 1450;
+                              else if (msg.actionDetails.target === 'All TV') affectedCount = 38;
+                              else if (msg.actionDetails.target === 'All Soundbar') affectedCount = 12;
+                              else if (msg.actionDetails.target === 'All Refrigerator') affectedCount = 45;
+                            }
+                          }
+
+                          setMessages(prev => [...prev, 
+                            { role: 'agent', type: 'text', content: `I have applied the draft promotion to the Live Store Preview. It is expected to affect ${affectedCount.toLocaleString()} products. If you are satisfied with how it looks, you can proceed to deploy.` },
+                            { role: 'agent', type: 'action', actionDetails: { ...msg.actionDetails, type: 'PROMOTION_DEPLOY', affectedCount, categoryId } }
+                          ]);
+                        }}>👀 Live Preview</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {msg.type === 'action' && msg.actionDetails?.type === 'PROMOTION_DEPLOY' && (
+                    <div className="action-card" style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}>
+                      <p style={{ fontSize: '0.85rem', marginBottom: '10px', color: '#334155' }}>Ready to launch this promotion to the live store?</p>
+                      
+                      <div style={{ marginBottom: '12px' }}>
+                        <PromotionDetailsButton target={msg.actionDetails.target} count={msg.actionDetails.affectedCount || 1} sku={msg.actionDetails.sku} categoryId={msg.actionDetails.categoryId} />
+                      </div>
+
+                      <div className="action-row">
+                        <button className="action-btn reject" onClick={() => {
+                          setMessages(prev => [...prev, { role: 'agent', type: 'text', content: 'Deployment cancelled.'}]);
+                        }}>Cancel</button>
+                        <button className="action-btn approve" style={{ background: 'var(--lg-red)', color: 'white', border: 'none' }} onClick={() => handleApproveAction(msg.actionDetails)}>🚀 Publish to Live</button>
                       </div>
                     </div>
                   )}
@@ -1246,30 +1340,96 @@ function PtoCreationForm({ onSubmit }: { onSubmit: (name: string, price: number,
 }
 
 // Promotion Details Toggle Component
-function PromotionDetailsButton({ target, count, sku }: { target: string, count: number, sku?: string }) {
+function PromotionDetailsButton({ target, count, sku, categoryId }: { target: string, count: number, sku?: string, categoryId?: string }) {
   const [show, setShow] = useState(false);
-  
-  // Mock some SKUs based on target to simulate DB query
-  const mockSkus = target === 'All TV' ? ['OLED65G4', 'OLED77C3', '75UR8000', '86QNED80', `... and ${count - 4} more`] : 
-                   target === 'Specific SKU' ? [sku || 'OLED65G4'] : 
-                   target === 'All Soundbar' ? ['S95QR', 'SC9S', 'S75Q', `... and ${count - 3} more`] :
-                   target === 'All Refrigerator' ? ['LFXS26596S', 'LRFVS3006S', 'LTCS24223S', `... and ${count - 3} more`] :
-                   ['OLED65G4 (TV)', 'S95QR (Audio)', 'LFXS26596S (Home Appliance)', `... and ${count - 3} more products across catalog`];
+  const [realSkus, setRealSkus] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (show && target !== 'Specific SKU' && realSkus.length === 0) {
+      setIsLoading(true);
+      const url = categoryId 
+        ? `http://localhost:8080/api/v1/catalog/products?categoryId=${categoryId}&size=${count}`
+        : `http://localhost:8080/api/v1/catalog/products?size=${count}`;
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+           if (data.content) {
+             setRealSkus(data.content.map((p: any) => `${p.sku} (${p.name || target})`));
+           }
+        })
+        .catch(err => console.error(err))
+        .finally(() => setIsLoading(false));
+    }
+  }, [show, target, categoryId, count]);
+
+  if (count > 30) {
+    const handleDownloadExcel = async () => {
+      let products = [];
+      if (target !== 'Specific SKU') {
+        const url = categoryId 
+          ? `http://localhost:8080/api/v1/catalog/products?categoryId=${categoryId}&size=${count}`
+          : `http://localhost:8080/api/v1/catalog/products?size=${count}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data.content) products = data.content;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      let csvContent = "data:text/csv;charset=utf-8,SKU,Category,Name\n";
+      if (products.length > 0) {
+        products.forEach((p: any, idx: number) => {
+          csvContent += `${p.sku},${target},${p.name || `Product ${idx+1}`}\n`;
+        });
+      } else {
+        for (let i = 1; i <= count; i++) {
+          csvContent += `PRD-${target.replace(/\s+/g, '')}-${i},${target},Product ${i}\n`;
+        }
+      }
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `affected_products_${target.replace(/\s+/g, '_')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    return (
+      <div>
+        <button 
+          className="btn" 
+          style={{ width: '100%', background: '#fff', border: '1px solid #475569', color: '#475569', padding: '8px', fontSize: '0.75rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
+          onClick={handleDownloadExcel}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download Excel List ({count.toLocaleString()})
+        </button>
+      </div>
+    );
+  }
+
+  const displaySkus = target === 'Specific SKU' ? [sku || 'OLED65G4'] : (realSkus.length > 0 ? realSkus : (isLoading ? ['Loading real SKUs from DB...'] : ['No SKUs found.']));
 
   return (
     <div>
       <button 
         className="btn" 
-        style={{ width: '100%', background: '#fff', border: '1px solid #bbf7d0', color: '#166534', padding: '8px', fontSize: '0.75rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer' }}
+        style={{ width: '100%', background: '#fff', border: '1px solid #bbf7d0', color: '#166534', padding: '8px', fontSize: '0.75rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
         onClick={() => setShow(!show)}
       >
-        {show ? 'Hide Details' : 'Check Product Details'}
+        <span>Check Product Details ({count})</span>
+        <span>{show ? '▲' : '▼'}</span>
       </button>
       {show && (
-        <div style={{ marginTop: '8px', background: '#fff', padding: '12px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.8rem', animation: 'fadeIn 0.3s ease' }}>
+        <div style={{ marginTop: '8px', background: '#fff', padding: '12px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.8rem', animation: 'fadeIn 0.3s ease', maxHeight: '200px', overflowY: 'auto' }}>
           <strong style={{ color: '#334155' }}>Affected Products:</strong>
           <ul style={{ paddingLeft: '20px', margin: '8px 0 0 0', color: '#475569', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {mockSkus.map((s, i) => <li key={i}>{s}</li>)}
+            {displaySkus.map((s, i) => <li key={i}>{s}</li>)}
           </ul>
         </div>
       )}
