@@ -12,11 +12,16 @@ import StoreManage from './pages/StoreManage';
 import OrderManage from './pages/OrderManage';
 import OrderDetail from './pages/OrderDetail';
 import StorePreview from './pages/StorePreview';
+import TranslationManage from './pages/TranslationManage';
 import PromotionManage from './pages/PromotionManage';
+
+import SecurityDashboard from './pages/SecurityDashboard';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" reverseOrder={false} />
       <Routes>
         <Route path="/login" element={<Login />} />
         
@@ -33,6 +38,8 @@ function App() {
           <Route path="orders" element={<OrderManage />} />
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="preview" element={<StorePreview />} />
+          <Route path="translations" element={<TranslationManage />} />
+          <Route path="security" element={<SecurityDashboard />} />
         </Route>
         
         {/* 매칭되지 않는 주소는 모두 메인(또는 로그인)으로 강제 리다이렉트 */}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { triggerConfetti, showCenterSuccessToast } from '../utils/uiHelpers';
 
 // Agent Data
 const agents = [
@@ -34,6 +35,19 @@ const agents = [
     name: 'General Support Agent',
     desc: 'Not sure what to click? Ask me anything here!',
     avatar: '/agents/support_agent_new.png',
+  },
+  {
+    id: 'leetest',
+    name: 'LEETEST Agent',
+    desc: 'LEETEST 테스트용 에이전트입니다.',
+    avatar: '/agents/support_agent_new.png',
+  },
+  {
+    id: 'security',
+    name: 'Security Agent',
+    desc: 'Monitors threats and protects your store in real-time.',
+    avatar: '/agents/security_doberman.png',
+    suggestions: ['Run security scan', 'Show threat logs', 'Generate report']
   }
 ];
 
@@ -198,6 +212,12 @@ export default function AiAgentSidebar() {
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Security Report Modal
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportContent, setReportContent] = useState('');
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportMeta, setReportMeta] = useState<any>(null);
+
   const dispatchAiAction = (detail: any) => {
     window.dispatchEvent(new CustomEvent('ai-action-apply', { detail }));
     const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
@@ -223,27 +243,44 @@ export default function AiAgentSidebar() {
   }, [isOpen]);
 
   useEffect(() => {
+    fetch('/api/promotions')
+      .then(res => res.json())
+      .then(data => setActivePromotions(data))
+      .catch(err => console.error("Failed to fetch promotions:", err));
+  }, []);
+
+  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // 에이전트 ID → 우측 Admin 페이지 매핑
+  const agentPageMap: Record<string, string> = {
+    promotion: '/promotions',
+    product: '/products',
+    order: '/orders',
+    rollout: '/stores',
+    support: '/',
+    security: '/security',
+  };
+
   const handleSelectAgent = (agent: any) => {
+    // 우측 대시보드를 에이전트에 맞는 Admin 페이지로 이동
+    const targetPage = agentPageMap[agent.id];
+    if (targetPage) {
+      navigate(targetPage);
+    }
+
     setActiveAgent(agent);
     setView('chat');
-    setMessages([
-      { role: 'agent', type: 'text', content: `Welcome! I am your ${agent.name}. How can I help you manage the store today?` }
-    ]);
-    
-    // Automatically navigate to the relevant admin page
-    if (agent.id === 'promotion') {
-      navigate('/promotions');
-    } else if (agent.id === 'catalog') {
-      navigate('/products');
-    } else if (agent.id === 'order') {
-      navigate('/orders');
-    } else if (agent.id === 'rollout') {
-      navigate('/preview');
-    } else if (agent.id === 'security') {
-      navigate('/security');
+
+    if (agent.id === 'security') {
+      setMessages([
+        { role: 'agent', type: 'text', content: `🛡️ Security Guardian activated.\nI am monitoring your store in real-time. The Security Dashboard is now displayed on the right panel.\n\nAvailable commands:\n• "Run DDoS simulation"\n• "Scan for SQL injection"\n• "Generate security report"\n• "Show current threat level"` }
+      ]);
+    } else {
+      setMessages([
+        { role: 'agent', type: 'text', content: `Welcome! I am your ${agent.name}. How can I help you manage the store today?` }
+      ]);
     }
   };
 
@@ -276,6 +313,8 @@ export default function AiAgentSidebar() {
     };
   }, [isDragging]);
 
+  const COMMERCE_API = 'http://localhost:4321';
+
   const submitMessage = async (text: string) => {
     if (!text.trim()) return;
 
@@ -283,21 +322,81 @@ export default function AiAgentSidebar() {
     setInputText('');
     setIsTyping(true);
 
-    if (activeAgent?.id === 'rollout' && (text.includes('스페인') || text.includes('Spain'))) {
-      setTimeout(() => {
+    // Security Agent 명령 처리
+    if (activeAgent?.id === 'security') {
+      const lower = text.toLowerCase();
+      try {
+        if (lower.includes('ddos')) {
+          await fetch(`${COMMERCE_API}/api/security`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'simulate', type: 'DDOS' }) });
+          const res = await fetch(`${COMMERCE_API}/api/security?action=status`);
+          const state = await res.json();
+          setTimeout(() => { setIsTyping(false); setMessages(prev => [...prev, { role: 'agent', type: 'text', content: `🌊 DDoS attack simulation executed.\n\n🔴 Threat Level: ${state.level}\n⚡ Active Threats: ${state.activeThreats}\n🛡️ Blocked Today: ${state.blockedToday}\n📊 Total Scanned: ${state.totalScanned.toLocaleString()}\n\nThe Security Dashboard on the right has been updated in real-time.` }]); }, 800);
+        } else if (lower.includes('sql')) {
+          await fetch(`${COMMERCE_API}/api/security`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'simulate', type: 'SQL_INJECTION' }) });
+          const res = await fetch(`${COMMERCE_API}/api/security?action=status`);
+          const state = await res.json();
+          setTimeout(() => { setIsTyping(false); setMessages(prev => [...prev, { role: 'agent', type: 'text', content: `💉 SQL Injection attack simulation executed.\n\n🔴 Threat Level: ${state.level}\n⚡ Active Threats: ${state.activeThreats}\n🛡️ Blocked Today: ${state.blockedToday}\n\nInjection attempt has been intercepted and logged.` }]); }, 800);
+        } else if (lower.includes('brute')) {
+          await fetch(`${COMMERCE_API}/api/security`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'simulate', type: 'BRUTE_FORCE' }) });
+          const res = await fetch(`${COMMERCE_API}/api/security?action=status`);
+          const state = await res.json();
+          setTimeout(() => { setIsTyping(false); setMessages(prev => [...prev, { role: 'agent', type: 'text', content: `🔓 Brute Force attack simulation executed.\n\n🔴 Threat Level: ${state.level}\n⚡ Active Threats: ${state.activeThreats}\n🛡️ Blocked Today: ${state.blockedToday}\n\nSuspicious login attempts have been blocked.` }]); }, 800);
+        } else if (lower.includes('price') || lower.includes('가격')) {
+          await fetch(`${COMMERCE_API}/api/security`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'simulate', type: 'PRICE_MANIPULATION' }) });
+          const res = await fetch(`${COMMERCE_API}/api/security?action=status`);
+          const state = await res.json();
+          setTimeout(() => { setIsTyping(false); setMessages(prev => [...prev, { role: 'agent', type: 'text', content: `💰 Price Manipulation attack simulation executed.\n\n🔴 Threat Level: ${state.level}\n🛡️ Blocked Today: ${state.blockedToday}\n\nPrice tampering attempt detected and neutralized.` }]); }, 800);
+        } else if (lower.includes('full') || lower.includes('all') || lower.includes('전체')) {
+          await fetch(`${COMMERCE_API}/api/security`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'simulate_all' }) });
+          setTimeout(async () => {
+            const res = await fetch(`${COMMERCE_API}/api/security?action=status`);
+            const state = await res.json();
+            setIsTyping(false);
+            setMessages(prev => [...prev, { role: 'agent', type: 'text', content: `🚨 Full Attack Scenario executed!\n\n🔴 Threat Level: ${state.level}\n⚡ Active Threats: ${state.activeThreats}\n🛡️ Blocked Today: ${state.blockedToday}\n📊 Total Scanned: ${state.totalScanned.toLocaleString()}\n📋 Total Logs: ${state.logs.length}\n\nAll attack vectors have been simulated. Check the dashboard for details.` }]);
+          }, 2000);
+        } else if (lower.includes('report') || lower.includes('보고서')) {
+          // 보고서 팝업 모달 띄우기
+          setIsTyping(false);
+          setMessages(prev => [...prev, { role: 'agent', type: 'text', content: '📊 Generating AI Security Report... Opening report window.' }]);
+          setReportLoading(true);
+          setShowReportModal(true);
+          // 상태 먼저 수집
+          const statusRes = await fetch(`${COMMERCE_API}/api/security?action=status`);
+          const statusData = await statusRes.json();
+          setReportMeta(statusData);
+          // AI 보고서 생성
+          const res = await fetch(`${COMMERCE_API}/api/security`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'report' }) });
+          const data = await res.json();
+          setReportContent(data.report || 'No threats detected. System is operating normally.');
+          setReportLoading(false);
+        } else if (lower.includes('clear') || lower.includes('초기화') || lower.includes('reset')) {
+          await fetch(`${COMMERCE_API}/api/security`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'clear' }) });
+          setTimeout(() => { setIsTyping(false); setMessages(prev => [...prev, { role: 'agent', type: 'text', content: `🗑️ Security logs cleared. System reset to SAFE status.\n\nAll threat data has been purged. Dashboard is now clean.` }]); }, 500);
+        } else if (lower.includes('status') || lower.includes('level') || lower.includes('상태') || lower.includes('threat')) {
+          const res = await fetch(`${COMMERCE_API}/api/security?action=status`);
+          const state = await res.json();
+          setTimeout(() => { setIsTyping(false); setMessages(prev => [...prev, { role: 'agent', type: 'text', content: `🛡️ Current Security Status:\n\n• Threat Level: ${state.level}\n• Active Threats: ${state.activeThreats}\n• Blocked Today: ${state.blockedToday}\n• Total Scanned: ${state.totalScanned.toLocaleString()}\n• Event Logs: ${state.logs.length} entries\n• Last Updated: ${new Date(state.lastUpdated).toLocaleTimeString('ko-KR')}` }]); }, 500);
+        } else {
+          // AI 대화로 fallback
+          try {
+            const response = await fetch('/api/agent/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text, agent: 'security' }) });
+            const data = await response.json();
+            setIsTyping(false);
+            setMessages(prev => [...prev, { role: 'agent', type: 'text', content: data.text || data.error || 'I can help with security operations. Try commands like "Run DDoS simulation" or "Generate security report".' }]);
+          } catch {
+            setIsTyping(false);
+            setMessages(prev => [...prev, { role: 'agent', type: 'text', content: 'Available commands:\n• "Run DDoS simulation"\n• "Scan for SQL injection"\n• "Simulate brute force"\n• "Price manipulation test"\n• "Full attack scenario"\n• "Generate report"\n• "Show status"\n• "Clear logs"' }]);
+          }
+        }
+      } catch (err) {
         setIsTyping(false);
-        setMessages(prev => [...prev, {
-          role: 'agent',
-          type: 'text',
-          content: 'Sure, I can help you roll out a new storefront for Spain (ES). I have pre-filled the initial configuration schema based on regional defaults.'
-        }, {
-          role: 'agent',
-          type: 'form',
-          formType: 'rollout_setup'
-        }]);
-      }, 1500);
+        setMessages(prev => [...prev, { role: 'agent', type: 'text', content: '⚠️ Failed to connect to Security Engine. Make sure the Commerce server (localhost:4321) is running.' }]);
+      }
       return;
     }
+
+
+    // Removed hardcoded '스페인' mock to let Gemini API handle it
 
     try {
       const response = await fetch('/api/agent/chat', { 
@@ -334,7 +433,7 @@ export default function AiAgentSidebar() {
           type: data.type || 'text',
           formType: data.formType,
           content: data.text,
-          actionDetails: data.action
+          actionDetails: data.actionDetails || data.action
         }]);
       }
     } catch (err) {
@@ -373,26 +472,37 @@ export default function AiAgentSidebar() {
     }, 1500);
   };
 
-  const handleApproveAction = (details: any) => {
-    const newPromo = { 
-       id: Math.random().toString(36).substring(2, 9).toUpperCase(), 
-       ...details,
-       name: details.name || "AI Generated Coupon",
-       targetScope: details.target,
-       discountValue: details.rate,
-       targetSku: details.sku,
-       startDate: details.startDate ? (details.startDate.includes('T') ? details.startDate : `${details.startDate}T00:00:00`) : null,
-       endDate: details.endDate ? (details.endDate.includes('T') ? details.endDate : `${details.endDate}T23:59:59`) : null
-    };
-    setActivePromotions(prev => [...prev, newPromo]);
+  const handleApproveAction = async (details: any) => {
+    try {
+      const payload = {
+        ...details,
+        name: details.name || "AI Generated Coupon",
+        targetScope: details.target,
+        discountValue: details.rate,
+        targetSku: details.sku,
+        startDate: details.startDate ? (details.startDate.includes('T') ? details.startDate : `${details.startDate}T00:00:00`) : null,
+        endDate: details.endDate ? (details.endDate.includes('T') ? details.endDate : `${details.endDate}T23:59:59`) : null
+      };
+      const res = await fetch('/api/promotions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
+      
+      const newPromo = await res.json();
+      setActivePromotions(prev => [...prev, newPromo]);
 
-    // Calculate simulated affected count based on target scope
-    let affectedCount = 1;
-    if (details.target === 'All Products') affectedCount = 1450;
-    else if (details.target === 'All TV') affectedCount = 38;
-    else if (details.target === 'All Soundbar') affectedCount = 12;
-    else if (details.target === 'All Refrigerator') affectedCount = 45;
-    else if (details.target === 'Specific SKU') affectedCount = 1;
+      let affectedCount = 1;
+      if (details.target === 'All Products') affectedCount = 1450;
+      else if (details.target === 'All TV') affectedCount = 38;
+      else if (details.target === 'All Soundbar') affectedCount = 12;
+      else if (details.target === 'All Refrigerator') affectedCount = 45;
+      else if (details.target === 'Specific SKU') affectedCount = 1;
 
       setMessages(prev => [...prev, {
         role: 'agent',
@@ -400,12 +510,155 @@ export default function AiAgentSidebar() {
         actionDetails: { type: 'PROMOTION_SUCCESS', promotionId: newPromo.id, affectedCount, target: details.target, sku: details.sku }
       }]);
 
-    // ✨ GLOBAL EVENT DISPATCH ✨
-    dispatchAiAction({ type: 'PROMOTION', promotion: newPromo });
+      dispatchAiAction({ type: 'PROMOTION', promotion: newPromo });
+    } catch (err: any) {
+      console.error("Failed to save promotion:", err);
+      setMessages(prev => [...prev, {
+        role: 'agent',
+        type: 'text',
+        content: `⚠️ Deployment Failed: ${err.message}`
+      }]);
+    }
   };
 
   return (
     <>
+      {/* ===== Security Report Modal ===== */}
+      {showReportModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fadeIn 0.3s ease'
+        }}
+          onClick={() => setShowReportModal(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: 720, maxWidth: '92vw', maxHeight: '88vh',
+              background: '#fff', borderRadius: 16,
+              boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden', animation: 'cloiSlideUp 0.3s ease'
+            }}
+          >
+            {/* Report Header */}
+            <div style={{
+              padding: '24px 28px 20px',
+              borderBottom: '1px solid #e5e7eb',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              color: '#fff'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <span style={{ fontSize: 22 }}>🛡️</span>
+                    <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: '0.5px' }}>
+                      AI Security Analysis Report
+                    </h2>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                    Generated: {new Date().toLocaleString('ko-KR')} · LG AI Commerce Platform
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
+                    width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
+                    fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >✕</button>
+              </div>
+
+              {/* Summary Cards */}
+              {reportMeta && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginTop: 16 }}>
+                  {[
+                    { label: 'Threat Level', value: reportMeta.level, color: reportMeta.level === 'CRITICAL' ? '#ef4444' : reportMeta.level === 'WARNING' ? '#f59e0b' : '#22c55e' },
+                    { label: 'Active Threats', value: reportMeta.activeThreats, color: reportMeta.activeThreats > 0 ? '#ef4444' : '#22c55e' },
+                    { label: 'Blocked Today', value: reportMeta.blockedToday, color: '#3b82f6' },
+                    { label: 'Total Scanned', value: reportMeta.totalScanned?.toLocaleString(), color: '#a78bfa' },
+                  ].map((s, i) => (
+                    <div key={i} style={{
+                      background: 'rgba(255,255,255,0.07)', borderRadius: 8,
+                      padding: '10px 12px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
+                      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Report Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+              {reportLoading ? (
+                <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>
+                  <div style={{ fontSize: 28, marginBottom: 12, animation: 'dotPulse 1.4s infinite ease-in-out' }}>🤖</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>AI가 보안 로그를 분석하고 있습니다...</div>
+                  <div style={{ fontSize: 12, marginTop: 6, color: '#94a3b8' }}>Gemini Security Analyzer</div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 14, lineHeight: 1.8, color: '#1e293b', whiteSpace: 'pre-wrap' }}>
+                  {/* 마크다운 형식의 보고서를 렌더링 */}
+                  {reportContent.split('\n').map((line, idx) => {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('# ')) return <h2 key={idx} style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '20px 0 8px', borderBottom: '2px solid #e2e8f0', paddingBottom: 6 }}>{trimmed.slice(2)}</h2>;
+                    if (trimmed.startsWith('## ')) return <h3 key={idx} style={{ fontSize: 16, fontWeight: 700, color: '#1e40af', margin: '16px 0 6px', display: 'flex', alignItems: 'center', gap: 6 }}>{trimmed.slice(3)}</h3>;
+                    if (trimmed.startsWith('### ')) return <h4 key={idx} style={{ fontSize: 14, fontWeight: 700, color: '#334155', margin: '12px 0 4px' }}>{trimmed.slice(4)}</h4>;
+                    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) return <div key={idx} style={{ paddingLeft: 16, position: 'relative', marginBottom: 4 }}><span style={{ position: 'absolute', left: 4, color: '#3b82f6', fontWeight: 700 }}>•</span>{trimmed.slice(2)}</div>;
+                    if (trimmed.startsWith('> ')) return <div key={idx} style={{ borderLeft: '3px solid #3b82f6', paddingLeft: 12, color: '#475569', fontStyle: 'italic', margin: '8px 0', background: '#f8fafc', padding: '8px 12px', borderRadius: '0 6px 6px 0' }}>{trimmed.slice(2)}</div>;
+                    if (trimmed.startsWith('---')) return <hr key={idx} style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '16px 0' }} />;
+                    if (trimmed === '') return <div key={idx} style={{ height: 8 }} />;
+                    // Bold text
+                    const boldParsed = trimmed.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                    return <div key={idx} dangerouslySetInnerHTML={{ __html: boldParsed }} style={{ marginBottom: 2 }} />;
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Report Footer */}
+            <div style={{
+              padding: '14px 28px', borderTop: '1px solid #e5e7eb',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              background: '#f8fafc'
+            }}>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                🔒 Confidential · LG AI Commerce Security Team
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => {
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(`<html><head><title>Security Report</title><style>body{font-family:'Segoe UI',sans-serif;padding:40px;color:#1e293b;line-height:1.8}h1{color:#0f172a;border-bottom:2px solid #e2e8f0;padding-bottom:8px}h2{color:#1e40af}h3{color:#334155}hr{border:none;border-top:1px solid #e2e8f0;margin:16px 0}</style></head><body><h1>🛡️ AI Security Analysis Report</h1><p style="color:#94a3b8;font-size:12px">Generated: ${new Date().toLocaleString('ko-KR')}</p><pre style="white-space:pre-wrap;font-family:inherit">${reportContent}</pre></body></html>`);
+                      printWindow.document.close();
+                      printWindow.print();
+                    }
+                  }}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8, border: '1px solid #d1d5db',
+                    background: '#fff', color: '#374151', fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6
+                  }}
+                >🖨️ Print</button>
+                <button
+                  onClick={() => setShowReportModal(false)}
+                  style={{
+                    padding: '8px 20px', borderRadius: 8, border: 'none',
+                    background: '#0f172a', color: '#fff', fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={`ai-sidebar-container ${isOpen ? 'open' : ''}`}>
         <div className="ai-header">
         <div>
@@ -511,8 +764,30 @@ export default function AiAgentSidebar() {
             <div className="chat-history">
               {messages.map((msg, idx) => (
                 <div key={idx} className={`chat-bubble ${msg.role}`}>
-                  <p>{msg.content}</p>
+                  {msg.content && <p style={{ whiteSpace: 'pre-wrap', margin: 0, lineHeight: '1.4' }}>{msg.content}</p>}
                   
+                  {/* Live Progress Stream Component */}
+                  {msg.type === 'progress' && (
+                    <div className="progress-card" style={{ background: '#f8f9fa', border: '1px solid #dee2e6', padding: '12px', borderRadius: '8px', marginTop: '8px' }}>
+                      <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', color: '#495057' }}>{msg.progressTitle || '⚙️ Deployment Progress'}</h4>
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
+                        {msg.progressList?.map((line: string, i: number) => (
+                          <li key={i} style={{ marginBottom: '6px', color: line.includes('✅') || line.includes('SUCCESS') ? 'var(--lg-red)' : '#6c757d', fontWeight: line.includes('✅') ? 'bold' : 'normal', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                            {line.includes('✅') || line.includes('SUCCESS') ? null : (
+                              i === msg.progressList!.length - 1 ? (
+                                <span className="spinner" style={{display:'inline-block', minWidth:'12px', height:'12px', border:'2px solid #ccc', borderTopColor:'var(--lg-red)', borderRadius:'50%', animation:'spin 1s linear infinite', marginTop: '4px'}}></span>
+                              ) : (
+                                <span style={{display:'inline-block', minWidth:'12px', height:'12px', border:'2px solid #ccc', borderRadius:'50%', marginTop: '4px'}}></span>
+                              )
+                            )}
+                            <span>{line}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+                    </div>
+                  )}
+
                   {/* Interactive Dynamic Form */}
                   {msg.type === 'form' && msg.formType === 'promotion' && (
                     <PromotionForm onSubmit={handleFormSubmit} />
@@ -538,11 +813,15 @@ export default function AiAgentSidebar() {
                            }]);
                            
                            if (scheduleType === 'Immediate') {
-                              setActivePromotions(prev => {
-                                const nextList = prev.filter(p => p.id !== promoId);
-                                dispatchAiAction({ type: 'STOP', remaining: nextList, promotionId: promoId });
-                                return nextList;
-                              });
+                              fetch(`/api/promotions/${promoId}`, { method: 'DELETE' })
+                                .then(() => {
+                                  setActivePromotions(prev => {
+                                    const nextList = prev.filter(p => p.id !== promoId);
+                                    dispatchAiAction({ type: 'STOP', remaining: nextList, promotionId: promoId });
+                                    return nextList;
+                                  });
+                                })
+                                .catch(err => console.error("Failed to stop promotion:", err));
                            }
                         }, 1000);
                       }} 
@@ -589,15 +868,17 @@ export default function AiAgentSidebar() {
                   {/* Rollout Setup Form */}
                   {msg.type === 'form' && msg.formType === 'rollout_setup' && (
                     <RolloutSetupForm 
+                      initialData={msg.actionDetails}
                       onSubmit={(config) => {
-                        setMessages(prev => [...prev, { role: 'user', type: 'text', content: `Deploy storefront for ${config.region} with currency ${config.currency} and language ${config.language}.` }]);
+                        const deployMsg = config.labels?.deployMsg?.replace('{0}', config.region).replace('{1}', config.currency).replace('{2}', config.language) || `Deploy storefront for ${config.region} with currency ${config.currency} and language ${config.language}.`;
+                        setMessages(prev => [...prev, { role: 'user', type: 'text', content: deployMsg }]);
                         setIsTyping(true);
                         setTimeout(() => {
                           setIsTyping(false);
                           setMessages(prev => [...prev, {
                             role: 'agent',
                             type: 'action',
-                            content: `I have compiled the build configurations and provisioned the database for the new region. Please approve to launch.`,
+                            content: config.labels?.compiledMsg || `I have compiled the build configurations and provisioned the database for the new region. Please approve to launch.`,
                             actionDetails: { type: 'ROLLOUT_SUCCESS', ...config }
                           }]);
                         }, 2000);
@@ -651,8 +932,8 @@ export default function AiAgentSidebar() {
                       </p>
                       <button 
                         className="btn" 
-                        style={{ width: '100%', background: 'var(--accent)', color: 'white', padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                        onClick={() => { navigate('/preview'); }}
+                        style={{ width: '100%', background: '#0284c7', color: 'white', padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                        onClick={() => { navigate('/preview?locale=' + encodeURIComponent((msg.actionDetails.language || 'au').substring(0, 2).toLowerCase())); }}
                       >
                         <span style={{ fontSize: '1.2rem' }}>👀</span> Open Live Preview
                       </button>
@@ -810,23 +1091,67 @@ export default function AiAgentSidebar() {
                   {/* Rollout Success Card */}
                   {msg.type === 'action' && msg.actionDetails?.type === 'ROLLOUT_SUCCESS' && (
                     <div className="action-card" style={{ borderLeft: '4px solid var(--accent)' }}>
-                      <div className="action-card-title">🌍 Site Launch Ready</div>
+                      <div className="action-card-title">{msg.actionDetails.labels?.cardTitle || '🌍 Site Launch Ready'}</div>
                       <div className="action-card-details">
-                        <p><strong>Region:</strong> {msg.actionDetails.region}</p>
-                        <p><strong>Currency:</strong> {msg.actionDetails.currency}</p>
-                        <p><strong>Language:</strong> {msg.actionDetails.language}</p>
-                        <p><strong>Catalog:</strong> {msg.actionDetails.catalog}</p>
+                        <p><strong>{msg.actionDetails.labels?.region || 'Region'}:</strong> {msg.actionDetails.region}</p>
+                        <p><strong>{msg.actionDetails.labels?.currency || 'Currency'}:</strong> {msg.actionDetails.currency}</p>
+                        <p><strong>{msg.actionDetails.labels?.language || 'Language'}:</strong> {msg.actionDetails.language}</p>
+                        <p><strong>{msg.actionDetails.labels?.catalog || 'Catalog'}:</strong> {msg.actionDetails.catalog}</p>
                       </div>
                       <div className="action-row">
                         <button className="action-btn reject" onClick={() => {
-                          setMessages(prev => [...prev, { role: 'agent', type: 'text', content: 'Rollout cancelled.' }]);
-                        }}>Abort</button>
+                          setMessages(prev => [...prev, { role: 'agent', type: 'text', content: msg.actionDetails.labels?.abort || 'Abort' }]);
+                        }}>{msg.actionDetails.labels?.abort || 'Abort'}</button>
                         <button className="action-btn approve" style={{ background: 'var(--accent)' }} onClick={() => {
+                          const config = msg.actionDetails;
+                          
+                          // 1. Add progress message placeholder
+                          const progressMsgIdx = messages.length + 1; // Since we are adding "Deploying..." text first
+                          const startDeployMsg = config.labels?.startDeploy?.replace('{0}', config.region) || `Start deployment for ${config.region}.`;
+                          const initMsg = config.labels?.initPipeline || 'Initializing pipeline...';
+                          const pTitle = config.labels?.progressTitle || '⚙️ Deployment Progress';
                           setMessages(prev => [...prev, 
-                            { role: 'agent', type: 'text', content: `🚀 Deployment initiated! The **${msg.actionDetails.region}** storefront is now LIVE at lg.com/${msg.actionDetails.region.toLowerCase()}` },
-                            { role: 'agent', type: 'action', actionDetails: { type: 'ASK_PREVIEW' } }
+                            { role: 'user', type: 'text', content: startDeployMsg },
+                            { role: 'agent', type: 'progress', progressTitle: pTitle, progressList: [initMsg] }
                           ]);
-                        }}>Launch Site</button>
+
+                          // 2. Open SSE stream
+                          const currentAdminId = localStorage.getItem('adminId') || 'SYSTEM';
+                          const userLang = config.userLang || 'en';
+                          const url = `/api/agent/rollout/execute?region=${encodeURIComponent(config.region)}&websiteId=${encodeURIComponent(config.websiteId)}&language=${encodeURIComponent(config.language)}&currency=${encodeURIComponent(config.currency)}&userLang=${encodeURIComponent(userLang)}&userId=${encodeURIComponent(currentAdminId)}`;
+                          const eventSource = new EventSource(url);
+
+                          eventSource.addEventListener('progress', (e) => {
+                             setMessages(prev => {
+                               const next = [...prev];
+                               const lastIdx = next.length - 1;
+                               const pMsg = next[lastIdx];
+                               if (pMsg && pMsg.type === 'progress') {
+                                 next[lastIdx] = {
+                                   ...pMsg,
+                                   progressList: [...(pMsg.progressList || []), e.data]
+                                 };
+                               }
+                               return next;
+                             });
+                          });
+
+                          eventSource.addEventListener('complete', () => {
+                             eventSource.close();
+                             triggerConfetti();
+                             showCenterSuccessToast(`🎉 ${config.region} Rollout Successfully Completed!`);
+                             const successMsg = config.labels?.successMsg?.replace('{0}', config.region) || `🚀 Deployment initiated! The **${config.region}** storefront is now LIVE at `;
+                             setMessages(prev => [...prev, 
+                               { role: 'agent', type: 'text', content: `${successMsg}lg.com/${config.region.toLowerCase()}` },
+                               { role: 'agent', type: 'action', actionDetails: { type: 'ASK_PREVIEW', language: config.region } }
+                             ]);
+                          });
+
+                          eventSource.addEventListener('error', (e) => {
+                             eventSource.close();
+                             setMessages(prev => [...prev, { role: 'agent', type: 'text', content: msg.actionDetails.labels?.failMsg || `❌ Deployment failed.` }]);
+                          });
+                        }}>{msg.actionDetails.labels?.launch || 'Launch Site'}</button>
                       </div>
                     </div>
                   )}
@@ -886,12 +1211,28 @@ export default function AiAgentSidebar() {
                         <button className="action-btn reject" onClick={() => {
                           setMessages(prev => [...prev, { role: 'agent', type: 'text', content: 'PTO Creation cancelled.'}]);
                         }}>Reject</button>
-                        <button className="action-btn approve" style={{ background: 'var(--lg-red)' }} onClick={() => {
-                          dispatchAiAction(msg.actionDetails);
-                          setMessages(prev => [...prev, 
-                            { role: 'agent', type: 'text', content: `Successfully deployed PTO Bundle: ${msg.actionDetails.bundleName} to the catalog.` },
-                            { role: 'agent', type: 'action', actionDetails: { type: 'ASK_PREVIEW' } }
-                          ]);
+                        <button className="action-btn approve" style={{ background: 'var(--lg-red)' }} onClick={async () => {
+                          try {
+                            const res = await fetch('/api/promotions/pto', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ 
+                                name: msg.actionDetails.bundleName, 
+                                bundlePrice: msg.actionDetails.price, 
+                                bundleCategory: msg.actionDetails.category, 
+                                bundleSkus: msg.actionDetails.skus?.join(','), 
+                                bundleImages: msg.actionDetails.images?.join(',') 
+                              })
+                            });
+                            const newPto = await res.json();
+                            dispatchAiAction({...msg.actionDetails, id: newPto.id});
+                            setMessages(prev => [...prev, 
+                              { role: 'agent', type: 'text', content: `Successfully deployed PTO Bundle: ${msg.actionDetails.bundleName} to the catalog.` },
+                              { role: 'agent', type: 'action', actionDetails: { type: 'ASK_PREVIEW' } }
+                            ]);
+                          } catch (err) {
+                            console.error("PTO Creation error:", err);
+                          }
                         }}>Approve & Deploy</button>
                       </div>
                     </div>
@@ -1467,54 +1808,65 @@ function PromotionDetailsButton({ target, count, sku, categoryId }: { target: st
 }
 
 // Rollout Setup Interactive Form
-function RolloutSetupForm({ onSubmit }: { onSubmit: (data: any) => void }) {
-  const [region, setRegion] = useState('ES');
-  const [currency, setCurrency] = useState('EUR');
-  const [language, setLanguage] = useState('es-ES');
-  const [catalog, setCatalog] = useState('EU_Base_Catalog');
+function RolloutSetupForm({ onSubmit, initialData }: { onSubmit: (data: any) => void, initialData?: any }) {
+  const [region, setRegion] = useState(initialData?.region || 'ES');
+  const [websiteId, setWebsiteId] = useState(initialData?.websiteId || '056');
+  const [currency, setCurrency] = useState(initialData?.currency || 'EUR');
+  const [language, setLanguage] = useState(initialData?.language || 'es-ES');
+  const [catalog, setCatalog] = useState('MASTER_CATALOG');
   const [complianceChecked, setComplianceChecked] = useState(false);
+  const userLang = initialData?.userLang || 'en';
+
+  // Dynamic translated labels from Gemini
+  const labels = initialData?.labels || {};
+  const lblRegion = labels.region || 'Region (Code)';
+  const lblWebsiteId = labels.websiteId || 'Website ID (3-digit)';
+  const lblCurrency = labels.currency || 'Currency';
+  const lblLanguage = labels.language || 'Language Locale';
+  const lblCatalog = labels.catalog || 'Base Catalog Template';
+  const lblMasterCatalog = labels.masterCatalog || 'Master Catalog (Global Default)';
+  const lblCompliance = labels.compliance || 'Confirm regional tax & data privacy compliance checks';
+  const lblButton = labels.button || 'Prepare Launch';
 
   return (
     <div className="chat-form">
       <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
         <div style={{ flex: 1 }}>
-          <label>Region</label>
-          <select className="chat-input" value={region} onChange={e => setRegion(e.target.value)}>
-            <option value="ES">Spain (ES)</option>
-            <option value="FR">France (FR)</option>
-            <option value="IT">Italy (IT)</option>
-            <option value="DE">Germany (DE)</option>
-            <option value="BR">Brazil (BR)</option>
-          </select>
+          <label>{lblRegion}</label>
+          <input type="text" className="chat-input" value={region} onChange={e => setRegion(e.target.value)} />
+        </div>
+        <div style={{ flex: 1, display: 'none' }}>
+          <label>{lblWebsiteId}</label>
+          <input type="text" className="chat-input" value={websiteId} onChange={e => setWebsiteId(e.target.value)} />
         </div>
         <div style={{ flex: 1 }}>
-          <label>Currency</label>
+          <label>{lblCurrency}</label>
           <input type="text" className="chat-input" value={currency} onChange={e => setCurrency(e.target.value)} />
         </div>
       </div>
       <div style={{ marginBottom: '8px' }}>
-        <label>Language Locale</label>
+        <label>{lblLanguage}</label>
         <input type="text" className="chat-input" value={language} onChange={e => setLanguage(e.target.value)} />
       </div>
       <div style={{ marginBottom: '12px' }}>
-        <label>Base Catalog Template</label>
-        <select className="chat-input" value={catalog} onChange={e => setCatalog(e.target.value)}>
-          <option value="EU_Base_Catalog">EU Standard Catalog</option>
-          <option value="Global_Premium">Global Premium Tier</option>
-          <option value="LATAM_Base">LATAM Standard</option>
+        <label>{lblCatalog}</label>
+        <select className="chat-input" value={catalog} onChange={e => setCatalog(e.target.value)} disabled>
+          <option value="MASTER_CATALOG">{lblMasterCatalog}</option>
         </select>
       </div>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#495057', cursor: 'pointer', marginBottom: '12px' }}>
-        <input type="checkbox" checked={complianceChecked} onChange={e => setComplianceChecked(e.target.checked)} />
-        Confirm regional tax & GDPR compliance checks
-      </label>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px', alignItems: 'start', marginBottom: '12px', textAlign: 'left', width: '100%' }}>
+        <input type="checkbox" id="compliance-chk" style={{ margin: '4px 0 0 0', cursor: 'pointer' }} checked={complianceChecked} onChange={e => setComplianceChecked(e.target.checked)} />
+        <label htmlFor="compliance-chk" style={{ fontSize: '0.8rem', color: '#495057', cursor: 'pointer', lineHeight: '1.4', margin: 0, textAlign: 'left', display: 'block' }}>
+          {lblCompliance}
+        </label>
+      </div>
       <button 
         className="btn btn-primary" 
         style={{ padding: '8px', fontSize: '0.85rem', width: '100%', background: 'var(--lg-red)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
         disabled={!complianceChecked}
-        onClick={(e) => { e.preventDefault(); onSubmit({ region, currency, language, catalog }); }}
+        onClick={(e) => { e.preventDefault(); onSubmit({ region, websiteId, currency, language, catalog, labels, userLang }); }}
       >
-        Prepare Launch
+        {lblButton}
       </button>
     </div>
   );

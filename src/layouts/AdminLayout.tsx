@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import AiAgentSidebar from '../components/AiAgentSidebar';
+import { useTranslation } from '../contexts/TranslationContext';
 import '../App.css'; // Global styles
 import '../ai-agent.css'; // AI Agent specific styles
 
@@ -13,6 +14,7 @@ interface Store {
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t, locale, setLocale } = useTranslation();
   const [stores, setStores] = useState<Store[]>([]);
 
   useEffect(() => {
@@ -20,7 +22,11 @@ export default function AdminLayout() {
     fetch('/api/stores?limit=100')
       .then(res => res.json())
       .then(json => {
-        if (json.data) setStores(json.data);
+        if (Array.isArray(json)) {
+          setStores(json);
+        } else if (json && json.data) {
+          setStores(json.data);
+        }
       })
       .catch(console.error);
   }, []);
@@ -39,13 +45,13 @@ export default function AdminLayout() {
 
   const adminRole = (localStorage.getItem('adminRole') || '').replace(/"/g, '').trim();
   const isSuperAdmin = adminRole === 'SUPER_ADMIN';
-
+  console.log(isSuperAdmin);
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', width: '100%' }}>
       {/* 🚀 AI Agent Sidebar on the left 🚀 */}
       <AiAgentSidebar />
 
-      <div className="admin-container" style={{ flex: 1, overflowY: 'auto', padding: '2rem 3vw', boxSizing: 'border-box' }}>
+      <div className="admin-container" style={{ flex: 1, overflowY: 'auto', padding: '2rem 1.5rem', boxSizing: 'border-box' }}>
         <header className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
             <svg viewBox="0 0 225 99" fill="none" style={{ height: '36px', width: 'auto' }}>
@@ -66,7 +72,7 @@ export default function AdminLayout() {
             <h1 style={{ margin: 0, paddingBottom: 0, fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', whiteSpace: 'nowrap' }}>OBS Global Admin</h1>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-            <select 
+            <select
               style={{
                 padding: '0.5rem 1rem',
                 borderRadius: '8px',
@@ -82,7 +88,7 @@ export default function AdminLayout() {
                 window.location.reload();
               }}
             >
-              <option value="ALL">📍 All Regions</option>
+              <option value="ALL">{t('admin.region.all', '📍 All Regions')}</option>
               {stores.map(store => (
                 <option key={store.id} value={store.id}>
                   📍 {store.name}
@@ -90,49 +96,49 @@ export default function AdminLayout() {
               ))}
             </select>
             <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-              <Link 
-                to="/" 
-                style={{ 
+              <Link
+                to="/"
+                style={{
                   color: location.pathname === '/' ? 'var(--accent)' : 'var(--text-muted)',
                   textDecoration: 'none',
                   fontWeight: location.pathname === '/' ? 'bold' : 'normal',
                   transition: 'color 0.2s'
                 }}
               >
-                Dashboard
+                {t('admin.menu.dashboard', 'Dashboard')}
               </Link>
-              <Link 
-                to="/stores" 
-                style={{ 
+              <Link
+                to="/stores"
+                style={{
                   color: location.pathname === '/stores' ? 'var(--accent)' : 'var(--text-muted)',
                   textDecoration: 'none',
                   fontWeight: location.pathname === '/stores' ? 'bold' : 'normal',
                   transition: 'color 0.2s'
                 }}
               >
-                Stores
+                {t('admin.menu.stores', 'Stores')}
               </Link>
-              <Link 
-                to="/members" 
-                style={{ 
+              <Link
+                to="/members"
+                style={{
                   color: location.pathname === '/members' ? 'var(--accent)' : 'var(--text-muted)',
                   textDecoration: 'none',
                   fontWeight: location.pathname === '/members' ? 'bold' : 'normal',
                   transition: 'color 0.2s'
                 }}
               >
-                Customers
+                {t('admin.menu.customers', 'Customers')}
               </Link>
-              <Link 
-                to="/products"  
-                style={{ 
+              <Link
+                to="/products"
+                style={{
                   color: location.pathname === '/products' ? 'var(--accent)' : 'var(--text-muted)',
                   textDecoration: 'none',
                   fontWeight: location.pathname === '/products' ? 'bold' : 'normal',
                   transition: 'color 0.2s'
                 }}
               >
-                Products
+                {t('admin.menu.products', 'Products')}
               </Link>
               <Link 
                 to="/promotions" 
@@ -145,20 +151,31 @@ export default function AdminLayout() {
               >
                 Promotions
               </Link>
-              <Link 
-                to="/orders" 
-                style={{ 
+              <Link
+                to="/orders"
+                style={{
                   color: location.pathname === '/orders' ? 'var(--accent)' : 'var(--text-muted)',
                   textDecoration: 'none',
                   fontWeight: location.pathname === '/orders' ? 'bold' : 'normal',
                   transition: 'color 0.2s'
                 }}
               >
-                Orders
+                {t('admin.menu.orders', 'Orders')}
               </Link>
-              <Link 
-                to="/preview" 
-                style={{ 
+              <Link
+                to="/translations"
+                style={{
+                  color: location.pathname === '/translations' ? 'var(--accent)' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname === '/translations' ? 'bold' : 'normal',
+                  transition: 'color 0.2s'
+                }}
+              >
+                {t('admin.menu.translations', 'Translations')}
+              </Link>
+              <Link
+                to="/preview"
+                style={{
                   color: location.pathname === '/preview' ? 'var(--lg-red, #a50034)' : 'var(--text-muted)',
                   textDecoration: 'none',
                   fontWeight: location.pathname === '/preview' ? 'bold' : 'normal',
@@ -168,13 +185,27 @@ export default function AdminLayout() {
                   gap: '4px'
                 }}
               >
-                <span style={{ fontSize: '1.2rem' }}>✨</span> Live Store Preview
+                {t('admin.menu.preview', '✨ Live Store Preview')}
               </Link>
-              <a 
-                href="http://localhost:3000/api-docs" 
-                target="_blank" 
+              <Link
+                to="/security"
+                style={{
+                  color: location.pathname === '/security' ? '#ef4444' : 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontWeight: location.pathname === '/security' ? 'bold' : 'normal',
+                  transition: 'color 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                🛡️ Security
+              </Link>
+              <a
+                href="http://localhost:3000/api-docs"
+                target="_blank"
                 rel="noopener noreferrer"
-                style={{ 
+                style={{
                   color: 'var(--text-muted)',
                   textDecoration: 'none',
                   transition: 'color 0.2s',
@@ -185,10 +216,26 @@ export default function AdminLayout() {
                 onMouseOver={(e) => e.currentTarget.style.color = 'var(--accent)'}
                 onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
               >
-                API Docs ↗
+                {t('admin.menu.apidocs', 'API Docs ↗')}
               </a>
             </nav>
-            <button 
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value)}
+              style={{
+                marginLeft: '1rem',
+                padding: '0.4rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-panel)',
+                color: 'var(--text-main)',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="en-US">English</option>
+              <option value="ko-KR">한국어</option>
+            </select>
+            <button
               onClick={handleLogout}
               style={{
                 background: 'transparent',
@@ -203,7 +250,7 @@ export default function AdminLayout() {
               onMouseOver={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef4444'; }}
               onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
             >
-              Logout
+              {t('admin.button.logout', 'Logout')}
             </button>
           </div>
         </header>
