@@ -202,7 +202,8 @@ export default function AiAgentSidebar() {
     window.dispatchEvent(new CustomEvent('ai-action-apply', { detail }));
     const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
     if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'ai-action-apply', detail }, '*');
+      const targetOrigin = window.location.hostname.includes('onrender.com') ? 'https://lg-ai-commerce.onrender.com' : '*';
+      iframe.contentWindow.postMessage({ type: 'ai-action-apply', detail }, targetOrigin);
     }
   };
 
@@ -231,6 +232,19 @@ export default function AiAgentSidebar() {
     setMessages([
       { role: 'agent', type: 'text', content: `Welcome! I am your ${agent.name}. How can I help you manage the store today?` }
     ]);
+    
+    // Automatically navigate to the relevant admin page
+    if (agent.id === 'promotion') {
+      navigate('/promotions');
+    } else if (agent.id === 'catalog') {
+      navigate('/products');
+    } else if (agent.id === 'order') {
+      navigate('/orders');
+    } else if (agent.id === 'rollout') {
+      navigate('/preview');
+    } else if (agent.id === 'security') {
+      navigate('/security');
+    }
   };
 
   // Drag Event Handlers
@@ -683,6 +697,7 @@ export default function AiAgentSidebar() {
                           setTimeout(() => {
                             const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
                             if (iframe && iframe.contentWindow) {
+                              const targetOrigin = window.location.hostname.includes('onrender.com') ? 'https://lg-ai-commerce.onrender.com' : '*';
                               iframe.contentWindow.postMessage({
                                 type: 'ai-action-apply',
                                 detail: {

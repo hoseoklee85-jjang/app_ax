@@ -31,7 +31,7 @@ export default function StorePreview() {
         </div>
         <iframe 
           id="store-preview-iframe"
-          src="http://localhost:4321/products" 
+          src={window.location.hostname.includes('onrender.com') ? "https://lg-ai-commerce.onrender.com/preview-au" : "http://localhost:5174/preview-au"} 
           title="Store Preview"
           style={{ width: '100%', flex: 1, border: 'none', background: '#fff' }}
         />
