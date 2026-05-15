@@ -71,7 +71,7 @@ export default function Dashboard() {
                   contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc', borderRadius: '8px' }}
                   itemStyle={{ color: '#60a5fa' }}
                 />
-                <Line type="monotone" dataKey="sales" stroke="#3b82f6" strokeWidth={4} dot={{ r: 5, fill: '#1e293b', strokeWidth: 2 }} activeDot={{ r: 7 }} />
+                <Line type="monotone" dataKey="sales" stroke="var(--accent)" strokeWidth={4} dot={{ r: 5, fill: '#1e293b', strokeWidth: 2 }} activeDot={{ r: 7 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -100,7 +100,7 @@ export default function Dashboard() {
                   data.recentOrders.map((o: any) => (
                     <tr key={o.id}>
                       <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0.75rem 0.5rem' }}>{o.orderNumber.slice(-8)}</td>
-                      <td style={{ fontWeight: 'bold', fontSize: '0.85rem', color: o.storeId === 'US' ? '#3b82f6' : '#10b981', padding: '0.75rem 0.5rem' }}>
+                      <td style={{ fontWeight: 'bold', fontSize: '0.85rem', color: o.storeId === 'US' ? 'var(--accent)' : '#10b981', padding: '0.75rem 0.5rem' }}>
                         {o.storeId === 'US' ? '🇺🇸 US' : '🇰🇷 KR'}
                       </td>
                       <td className="fw-bold" style={{ fontSize: '0.9rem', padding: '0.75rem 0.5rem' }}>{o.customer}</td>

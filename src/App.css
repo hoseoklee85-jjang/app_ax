@@ -3,8 +3,8 @@
   --bg-panel: #ffffff;
   --text-main: #1e293b;
   --text-muted: #64748b;
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
+  --accent: #a50034;
+  --accent-hover: #7a0026;
   --border: #e2e8f0;
   --success: #10b981;
   --warning: #f59e0b;
@@ -36,9 +36,9 @@ body {
   margin: 0;
   padding-bottom: 5px; /* Prevent bottom cut-off for letters like 'g' and emojis */
   line-height: 1.2;
-  background: linear-gradient(135deg, #4f46e5, #3b82f6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: var(--accent);
 }
 
 .admin-main {
@@ -97,7 +97,7 @@ label {
   color: var(--text-muted);
 }
 
-input, textarea, select {
+input:not([type="checkbox"]):not([type="radio"]), textarea, select {
   width: 100%;
   padding: 0.75rem;
   background: var(--bg-panel);
@@ -121,7 +121,7 @@ select {
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px rgba(165, 0, 52, 0.2);
 }
 
 textarea {
@@ -230,7 +230,7 @@ textarea {
 .login-header h1 {
   font-size: 1.75rem;
   margin: 0 0 0.5rem 0;
-  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  background: linear-gradient(135deg, #4f46e5, var(--accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -249,11 +249,11 @@ textarea {
   margin-top: 1rem;
   padding: 1rem;
   font-size: 1rem;
-  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+  box-shadow: 0 4px 14px 0 rgba(165, 0, 52, 0.39);
 }
 
 .login-btn:hover {
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.23);
+  box-shadow: 0 6px 20px rgba(165, 0, 52, 0.23);
 }
 
 .error-message {

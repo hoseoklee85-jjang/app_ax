@@ -45,6 +45,21 @@ export default function PromotionManage() {
     setCouponForm({ code: '', type: 'percentage', value: '', expiry: '' });
   };
 
+  const handleDownloadCouponProducts = (code: string) => {
+    let csvContent = "data:text/csv;charset=utf-8,SKU,Coupon_Code,Name\n";
+    const target = code;
+    for (let i = 1; i <= 35; i++) {
+      csvContent += `PRD-${target}-${i},${target},Eligible Product ${i}\n`;
+    }
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `eligible_products_${target}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // --- 2. Timesale Management ---
   const [timesales, setTimesales] = useState([
     { id: 1, productId: 1, discountPrice: 99, start: '2026-05-01T00:00', end: '2026-05-03T23:59' }
@@ -125,7 +140,7 @@ export default function PromotionManage() {
                 padding: '1rem',
                 border: 'none',
                 borderRadius: '8px',
-                background: activeTab === item.id ? 'var(--accent-bg, rgba(79, 70, 229, 0.1))' : 'transparent',
+                background: activeTab === item.id ? 'var(--accent-bg, rgba(165, 0, 52, 0.1))' : 'transparent',
                 color: activeTab === item.id ? 'var(--accent)' : 'var(--text-main)',
                 fontWeight: activeTab === item.id ? 'bold' : 'normal',
                 cursor: 'pointer',
@@ -184,7 +199,7 @@ export default function PromotionManage() {
 
             <div className="table-wrapper">
               <table className="product-table">
-                <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Expiry</th></tr></thead>
+                <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Expiry</th><th>Action</th></tr></thead>
                 <tbody>
                   {coupons.map(c => (
                     <tr key={c.id}>
@@ -192,9 +207,30 @@ export default function PromotionManage() {
                       <td style={{ textTransform: 'capitalize' }}>{c.type}</td>
                       <td>{c.type === 'percentage' ? `${c.value}%` : `$${c.value}`}</td>
                       <td>{c.expiry}</td>
+                      <td>
+                        <button 
+                          onClick={() => handleDownloadCouponProducts(c.code)}
+                          style={{
+                            background: '#f1f5f9',
+                            border: '1px solid #cbd5e1',
+                            color: '#334155',
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                          Download Applied Products
+                        </button>
+                      </td>
                     </tr>
                   ))}
-                  {coupons.length === 0 && <tr><td colSpan={4} className="text-center">No coupons found.</td></tr>}
+                  {coupons.length === 0 && <tr><td colSpan={5} className="text-center">No coupons found.</td></tr>}
                 </tbody>
               </table>
             </div>

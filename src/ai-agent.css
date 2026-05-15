@@ -6,7 +6,7 @@
   --ai-sidebar-width: 480px;
   --ai-shadow: 2px 0 20px rgba(0, 0, 0, 0.05);
   --ai-gradient: linear-gradient(135deg, var(--lg-red, #a50034), #ff4b4b);
-  --ai-bg: #FAFAFA;
+  --ai-bg: #ffffff;
   --lg-red: #a50034;
   --lg-white: #ffffff;
   --lg-border: #e9ecef;
@@ -64,22 +64,22 @@
 }
 
 .ai-agent-item {
-  background: var(--lg-white);
+  background: #fff0f2;
   border-radius: var(--radius-lg);
   padding: 20px;
   display: flex;
   gap: 16px;
   align-items: center;
   cursor: pointer;
-  border: 1px solid var(--lg-border);
+  border: 1px solid rgba(165, 0, 52, 0.1);
   transition: all 0.2s ease;
   margin-bottom: 16px;
 }
 
 .ai-agent-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
-  border-color: var(--lg-black);
+  box-shadow: 0 8px 24px rgba(165, 0, 52, 0.15);
+  border-color: var(--lg-red);
 }
 
 .ai-agent-avatar {
@@ -147,8 +147,10 @@
 
 .chat-bubble.user {
   align-self: flex-end;
-  background: var(--lg-black);
-  color: var(--lg-white);
+  background: var(--lg-white);
+  color: var(--lg-black);
+  border: 1px solid var(--lg-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
   border-bottom-right-radius: 4px;
 }
 
@@ -159,11 +161,11 @@
 
 .chat-bubble.agent {
   align-self: flex-start;
-  background: var(--lg-white);
+  background: #fff0f2;
   color: var(--lg-black);
-  border: 1px solid var(--lg-border);
+  border: 1px solid rgba(165, 0, 52, 0.1);
   border-bottom-left-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 12px rgba(165, 0, 52, 0.05);
 }
 
 /* Interactive Form within Chat */

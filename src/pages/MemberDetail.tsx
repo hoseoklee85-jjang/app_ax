@@ -113,7 +113,7 @@ export default function MemberDetail() {
           {/* Avatar */}
           <div style={{
             width: '80px', height: '80px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            background: 'linear-gradient(135deg, var(--accent) 0%, #475569 100%)',
             display: 'flex', justifyContent: 'center', alignItems: 'center',
             color: 'white', fontSize: '2rem', fontWeight: 'bold',
             boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)'
@@ -204,7 +204,7 @@ export default function MemberDetail() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
               <div style={{ padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9' }}>
                 <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.25rem' }}>Store (Country)</div>
-                <div style={{ color: '#3b82f6', fontWeight: '700', fontSize: '1.1rem' }}>{member.storeCountry || member.websiteId || 'Unknown'}</div>
+                <div style={{ color: 'var(--accent)', fontWeight: '700', fontSize: '1.1rem' }}>{member.storeCountry || member.websiteId || 'Unknown'}</div>
               </div>
               <div style={{ padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9' }}>
                 <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.25rem' }}>Customer Group</div>
@@ -250,7 +250,7 @@ export default function MemberDetail() {
                 {shippingAddresses.map(addr => (
                   <div key={addr.id} style={{ 
                     padding: '1.5rem', 
-                    border: addr.isDefault ? '2px solid #3b82f6' : '1px solid #e2e8f0', 
+                    border: addr.isDefault ? '2px solid var(--accent)' : '1px solid #e2e8f0', 
                     borderRadius: '12px', 
                     background: addr.isDefault ? '#eff6ff' : '#ffffff',
                     position: 'relative',
@@ -258,7 +258,7 @@ export default function MemberDetail() {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                   }}>
                     {addr.isDefault && (
-                      <span style={{ position: 'absolute', top: '1rem', right: '1rem', background: '#3b82f6', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '0.2rem 0.6rem', borderRadius: '999px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      <span style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'var(--accent)', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '0.2rem 0.6rem', borderRadius: '999px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                         Default
                       </span>
                     )}
@@ -322,7 +322,7 @@ export default function MemberDetail() {
                 {billingAddresses.map(addr => (
                   <div key={addr.id} style={{ 
                     padding: '1.5rem', 
-                    border: addr.isDefault ? '2px solid #8b5cf6' : '1px solid #e2e8f0', 
+                    border: addr.isDefault ? '2px solid #475569' : '1px solid #e2e8f0', 
                     borderRadius: '12px', 
                     background: addr.isDefault ? '#f5f3ff' : '#ffffff',
                     position: 'relative',
@@ -330,7 +330,7 @@ export default function MemberDetail() {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                   }}>
                     {addr.isDefault && (
-                      <span style={{ position: 'absolute', top: '1rem', right: '1rem', background: '#8b5cf6', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '0.2rem 0.6rem', borderRadius: '999px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      <span style={{ position: 'absolute', top: '1rem', right: '1rem', background: '#475569', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', padding: '0.2rem 0.6rem', borderRadius: '999px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                         Default
                       </span>
                     )}
@@ -407,7 +407,7 @@ export default function MemberDetail() {
                   <tbody>
                     {member.orders.map((order: any) => (
                       <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
-                        <td style={{ padding: '1rem', fontWeight: '500', color: '#3b82f6' }}>
+                        <td style={{ padding: '1rem', fontWeight: '500', color: 'var(--accent)' }}>
                           <Link to={`/orders/${order.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                             {order.orderNumber}
                           </Link>

@@ -395,8 +395,7 @@ export default function AiAgentSidebar() {
       <div className={`ai-sidebar-container ${isOpen ? 'open' : ''}`}>
         <div className="ai-header">
         <div>
-          <h2>LG.com AI Agent</h2>
-          <p>Zero-Click Architecture</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--lg-black)' }}>LG OBS AI Agent</h2>
         </div>
         <button onClick={() => setIsOpen(!isOpen)} style={{ border:'none', background:'transparent', fontSize:'1.2rem', cursor:'pointer' }}>
           ✕
@@ -405,7 +404,11 @@ export default function AiAgentSidebar() {
 
       {view === 'dashboard' ? (
         <div className="ai-view-content">
-          <p style={{marginBottom:'24px', fontWeight:700}}>Select your specialized agent:</p>
+          <p style={{marginBottom:'24px', fontWeight:500, lineHeight: '1.5', color: '#475569', fontSize: '0.95rem'}}>
+            <strong style={{color: '#1e293b', fontSize: '1.05rem'}}>Welcome to LG OBS Admin!</strong><br/>
+            Our AI Agents will help you explore and configure your site in the blink of an eye.<br/>
+            <span style={{fontWeight: 700, color: 'var(--accent)', display: 'inline-block', marginTop: '10px'}}>Select an agent to start working:</span>
+          </p>
           {agents.map(agent => (
             <div key={agent.id} className="ai-agent-item" style={{ display: 'flex', alignItems: 'center' }} onClick={() => handleSelectAgent(agent)}>
               <img src={agent.avatar} alt={agent.name} className="ai-agent-avatar" />
@@ -634,7 +637,7 @@ export default function AiAgentSidebar() {
                       </p>
                       <button 
                         className="btn" 
-                        style={{ width: '100%', background: '#0284c7', color: 'white', padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                        style={{ width: '100%', background: 'var(--accent)', color: 'white', padding: '10px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                         onClick={() => { navigate('/preview'); }}
                       >
                         <span style={{ fontSize: '1.2rem' }}>👀</span> Open Live Preview
@@ -1344,6 +1347,7 @@ function PromotionDetailsButton({ target, count, sku, categoryId }: { target: st
   const [show, setShow] = useState(false);
   const [realSkus, setRealSkus] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (show && target !== 'Specific SKU' && realSkus.length === 0) {
@@ -1408,6 +1412,16 @@ function PromotionDetailsButton({ target, count, sku, categoryId }: { target: st
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           Download Excel List ({count.toLocaleString()})
+        </button>
+        <button 
+          className="btn" 
+          style={{ width: '100%', background: 'var(--accent)', border: 'none', color: '#fff', padding: '8px', fontSize: '0.75rem', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', marginTop: '8px' }}
+          onClick={() => {
+            navigate('/promotions');
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+          View list in Promotion Admin
         </button>
       </div>
     );
